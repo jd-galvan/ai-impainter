@@ -9,7 +9,8 @@ sys.path.append("..")
 class SAM2:
     def __init__(self, device: str):
         self.checkpoints_dir = "./checkpoints/"
-        self.model_url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
+        model = "sam_vit_h_4b8939"
+        self.model_url = f"https://dl.fbaipublicfiles.com/segment_anything/{model}.pth"
         self.model_path = os.path.join(
             self.checkpoints_dir, os.path.basename(self.model_url))
 
@@ -18,13 +19,14 @@ class SAM2:
 
         # Descargar el archivo si no existe
         if not os.path.exists(self.model_path):
-            print(f"Descargando el modelo desde {self.model_url}...")
+            print(
+                f"Descargando el modelo SAM2 {model} desde {self.model_url}...")
             urllib.request.urlretrieve(self.model_url, self.model_path)
-            print("Descarga completa.")
+            print("Descarga de modelo SAM2 completa.")
         else:
-            print("El modelo ya está descargado.")
+            print(f"El modelo de SAM2 {model} ya está descargado.")
 
-        sam_checkpoint = "./checkpoints/sam_vit_h_4b8939.pth"
+        sam_checkpoint = f"./checkpoints/{model}.pth"
         model_type = "vit_h"
 
         sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
