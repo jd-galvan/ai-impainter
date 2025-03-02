@@ -1,3 +1,5 @@
+import os
+import urllib.request
 from segment_anything import sam_model_registry, SamPredictor
 import numpy as np
 import sys
@@ -6,6 +8,22 @@ sys.path.append("..")
 
 class SAM2:
     def __init__(self, device: str):
+        self.checkpoints_dir = "./checkpoints/"
+        self.model_url = "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt"
+        self.model_path = os.path.join(
+            self.checkpoints_dir, os.path.basename(self.model_url))
+
+        # Crear el directorio si no existe
+        os.makedirs(self.checkpoints_dir, exist_ok=True)
+
+        # Descargar el archivo si no existe
+        if not os.path.exists(self.model_path):
+            print(f"Descargando el modelo desde {self.model_url}...")
+            urllib.request.urlretrieve(self.model_url, self.model_path)
+            print("Descarga completa.")
+        else:
+            print("El modelo ya está descargado.")
+
         sam_checkpoint = "sam_vit_h_4b8939.pth"
         model_type = "vit_h"
 
