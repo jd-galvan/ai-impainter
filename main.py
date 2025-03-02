@@ -61,12 +61,13 @@ with gr.Blocks() as demo:
             without_irrelevant_pixels_mask = fill_little_spaces(
                 refined_binary_mask)
             dilated_mask = soften_contours(without_irrelevant_pixels_mask)
-            blurred_mask = blur_mask(dilated_mask)
+            blurred_mask = dilated_mask
+            #blurred_mask = blur_mask(dilated_mask)
 
             # Mezcla de máscaras previas si existen
             old_mask = cv2.imread(RUTA_MASCARA)
             if old_mask is not None:
-                blurred_mask = np.maximum(old_mask[:, :, 0], blurred_mask)
+                blurred_mask = np.maximum(old_mask[:, :, 0], dilated_mask)
 
             # Guardar máscara procesada
             processed_mask = Image.fromarray(blurred_mask, mode='L')

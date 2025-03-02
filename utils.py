@@ -39,7 +39,7 @@ def fill_little_spaces(binary_mask, kernel_size=15):
     return closed_mask
 
 
-def soften_contours(binary_mask, kernel_size=45):
+def soften_contours(binary_mask, kernel_size=100):
     # Definir el kernel de dilatación
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
