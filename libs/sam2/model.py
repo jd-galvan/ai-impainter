@@ -9,7 +9,7 @@ sys.path.append("..")
 class SAM2:
     def __init__(self, device: str):
         self.checkpoints_dir = "./checkpoints/"
-        self.model_url = "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt"
+        self.model_url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
         self.model_path = os.path.join(
             self.checkpoints_dir, os.path.basename(self.model_url))
 
