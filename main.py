@@ -46,7 +46,7 @@ with gr.Blocks() as demo:
             coords = evt.index  # Coordenadas del píxel seleccionado
 
             # Generación de la máscara
-            mask_image = SAM2.get_mask_by_pixel(
+            mask_image = segmentation_model.get_mask_by_pixel(
                 x=coords[0], y=coords[1], image=image)
             binary_mask = generate_binary_mask(mask_image)
             refined_binary_mask = delete_irrelevant_detected_pixels(
@@ -77,7 +77,7 @@ with gr.Blocks() as demo:
     # Procesar la imagen con la máscara y el texto de entrada
     def process_final_image(original_image_path, mask_path, text):
         try:
-            new_image = SDImpainting.impaint(
+            new_image = impainting_model.impaint(
                 image_path=original_image_path, mask_path=mask_path, text=text)
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL
