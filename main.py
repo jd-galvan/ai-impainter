@@ -5,7 +5,14 @@ import cv2
 import io
 from libs.sam2.model import SAM2
 from libs.stable_diffusion.impaint.model import SDImpainting
-from utils import generate_binary_mask, delete_irrelevant_detected_pixels, fill_little_spaces, soften_contours, delete_files
+from utils import (
+    generate_binary_mask,
+    delete_irrelevant_detected_pixels,
+    fill_little_spaces,
+    soften_contours,
+    blur_mask,
+    delete_files
+)
 
 # Rutas de archivos generados
 RUTA_MASCARA = "processed_mask.png"
@@ -54,14 +61,15 @@ with gr.Blocks() as demo:
             without_irrelevant_pixels_mask = fill_little_spaces(
                 refined_binary_mask)
             dilated_mask = soften_contours(without_irrelevant_pixels_mask)
+            blurred_mask = blur_mask(dilated_mask)
 
             # Mezcla de máscaras previas si existen
             old_mask = cv2.imread(RUTA_MASCARA)
             if old_mask is not None:
-                dilated_mask = np.maximum(old_mask[:, :, 0], dilated_mask)
+                blurred_mask = np.maximum(old_mask[:, :, 0], blurred_mask)
 
             # Guardar máscara procesada
-            processed_mask = Image.fromarray(dilated_mask, mode='L')
+            processed_mask = Image.fromarray(blurred_mask, mode='L')
             processed_mask.save(RUTA_MASCARA)
 
             return RUTA_MASCARA

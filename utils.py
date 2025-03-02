@@ -48,6 +48,12 @@ def soften_contours(binary_mask, kernel_size=45):
     return dilated_mask
 
 
+def blur_mask(binary_mask):
+    # (51,51) es el tamaño del kernel, 20 es la desviación estándar
+    blurred_mask = cv2.GaussianBlur(binary_mask, (51, 51), 20)
+    return blurred_mask
+
+
 def delete_files(file_paths):
     for file_path in file_paths:
         if os.path.exists(file_path):  # Verifica si el archivo existe
