@@ -36,6 +36,13 @@ with gr.Blocks() as demo:
                                 placeholder="Write something here...")
 
     with gr.Row():
+        strength = gr.Slider(minimum=0.0, maximum=1.0, value=0.95, label="Strength", interactive=True)
+        guidance = gr.Slider(minimum=0.0, maximum=50.0, value=7.0, label="Guidance Scale", interactive=True)
+
+    with gr.Row():
+        negative_prompt = gr.Textbox(label="Negative prompt", placeholder="Write negative prompt...")
+
+    with gr.Row():
         send_button = gr.Button("Generate Final Image")
 
     with gr.Row():
@@ -84,10 +91,10 @@ with gr.Blocks() as demo:
         return None
 
     # Procesar la imagen con la máscara y el texto de entrada
-    def process_final_image(original_image_path, mask_path, text):
+    def process_final_image(original_image_path, mask_path, text, strength, guidance, negative_prompt):
         try:
             new_image = impainting_model.impaint(
-                image_path=original_image_path, mask_path=mask_path, text=text)
+                image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, negative_prompt=negative_prompt)
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL
         except Exception as e:
@@ -98,7 +105,7 @@ with gr.Blocks() as demo:
     img.select(on_select, inputs=[img], outputs=processed_img)
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input], outputs=final_image)
+                      img, processed_img, text_input, strength, guidance], outputs=final_image)
 
 # Limpiar archivos previos antes de lanzar la aplicación
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
