@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
@@ -5,10 +6,13 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 class BLIP:
     def __init__(self, device: str):
         self.device = device
+        
+        huggingface_token = os.getenv("HUGGINGFACE_HUB_TOKEN")
+
         self.processor = BlipProcessor.from_pretrained(
-            "Salesforce/blip-image-captioning-base")
+            "Salesforce/blip-image-captioning-base", token=huggingface_token)
         self.model = BlipForConditionalGeneration.from_pretrained(
-            "Salesforce/blip-image-captioning-base").to(self.device)
+            "Salesforce/blip-image-captioning-base", token=huggingface_token).to(self.device)
 
     def generate_caption(self, image_path: str):
         """Detect what is in the picture"""

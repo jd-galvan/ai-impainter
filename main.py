@@ -54,7 +54,7 @@ with gr.Blocks() as demo:
 
     with gr.Row():
         text_input = gr.Textbox(label="Enter prompt",
-                                placeholder="Write something here...")
+                                placeholder="Write prompt for impainting...")
 
     with gr.Row():
         strength = gr.Slider(minimum=0.0, maximum=1.0,
