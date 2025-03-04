@@ -19,4 +19,4 @@ class BLIP:
         raw_image = Image.open(image_path).convert('RGB')
         inputs = self.processor(raw_image, return_tensors="pt").to(self.device)
         out = self.model.generate(**inputs)
-        return self.processor.decode(out[0], skip_special_tokens=True)
+        return f"photo of {self.processor.decode(out[0], skip_special_tokens=True)}"
