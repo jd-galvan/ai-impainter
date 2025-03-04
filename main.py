@@ -36,7 +36,7 @@ with gr.Blocks() as demo:
                                 placeholder="Write something here...")
 
     with gr.Row():
-        strength = gr.Slider(minimum=0.0, maximum=1.0, value=0.95, label="Strength", interactive=True)
+        strength = gr.Slider(minimum=0.0, maximum=1.0, value=0.99, label="Strength", interactive=True)
         guidance = gr.Slider(minimum=0.0, maximum=50.0, value=7.0, label="Guidance Scale", interactive=True)
 
     with gr.Row():
