@@ -5,6 +5,7 @@ import cv2
 import io
 from libs.sam2.model import SAM2
 from libs.stable_diffusion.impaint.model import SDImpainting
+from libs.blip.model import BLIP
 from utils import (
     generate_binary_mask,
     delete_irrelevant_detected_pixels,
@@ -22,8 +23,22 @@ RUTA_IMAGEN_FINAL = "final_output.png"
 DEVICE = "cuda:1"
 
 # Cargar modelos
+captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
+
+# **Función que se ejecuta al cargar una imagen**
+
+
+def on_image_load(image_path):
+    try:
+        caption = captioning_model.generate_caption(
+            image_path)  # Generar el caption usando el path
+        return caption  # Retornar el caption para que se muestre en el campo de texto
+    except Exception as e:
+        print(f"Error en la generación del caption: {e}")
+        return "Error en la generación del caption"
+
 
 # Construcción de la interfaz en Gradio
 with gr.Blocks() as demo:
@@ -36,11 +51,14 @@ with gr.Blocks() as demo:
                                 placeholder="Write something here...")
 
     with gr.Row():
-        strength = gr.Slider(minimum=0.0, maximum=1.0, value=0.99, label="Strength", interactive=True)
-        guidance = gr.Slider(minimum=0.0, maximum=50.0, value=7.0, label="Guidance Scale", interactive=True)
+        strength = gr.Slider(minimum=0.0, maximum=1.0,
+                             value=0.99, label="Strength", interactive=True)
+        guidance = gr.Slider(minimum=0.0, maximum=50.0,
+                             value=7.0, label="Guidance Scale", interactive=True)
 
     with gr.Row():
-        negative_prompt = gr.Textbox(label="Negative prompt", placeholder="Write negative prompt...")
+        negative_prompt = gr.Textbox(
+            label="Negative prompt", placeholder="Write negative prompt...")
 
     with gr.Row():
         send_button = gr.Button("Generate Final Image")
@@ -48,7 +66,10 @@ with gr.Blocks() as demo:
     with gr.Row():
         final_image = gr.Image(label="Final Output", type="filepath")
 
-    # Manejo de selección de la imagen para generar la máscara
+    # **Asignar la función para que se ejecute cuando la imagen se cargue**
+    img.change(on_image_load, inputs=[img], outputs=text_input)
+
+    # **Manejo de selección de la imagen para generar la máscara**
     def on_select(image_path, evt: gr.SelectData):
         try:
             image = cv2.imread(image_path)
@@ -69,7 +90,6 @@ with gr.Blocks() as demo:
                 refined_binary_mask)
             dilated_mask = soften_contours(without_irrelevant_pixels_mask)
             blurred_mask = dilated_mask
-            #blurred_mask = blur_mask(dilated_mask)
 
             # Mezcla de máscaras previas si existen
             old_mask = cv2.imread(RUTA_MASCARA)
@@ -85,12 +105,12 @@ with gr.Blocks() as demo:
             print(f"Error: {e}")
             return None
 
-    # Reiniciar la máscara al cambiar de imagen
+    # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
         delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
         return None
 
-    # Procesar la imagen con la máscara y el texto de entrada
+    # **Procesar la imagen con la máscara y el texto de entrada**
     def process_final_image(original_image_path, mask_path, text, strength, guidance, negative_prompt):
         try:
             new_image = impainting_model.impaint(
@@ -101,14 +121,14 @@ with gr.Blocks() as demo:
             print(f"Error: {e}")
             return None
 
-    # Asignar eventos a la interfaz
+    # **Asignar eventos a la interfaz**
     img.select(on_select, inputs=[img], outputs=processed_img)
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance], outputs=final_image)
+                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
 
-# Limpiar archivos previos antes de lanzar la aplicación
+# **Limpiar archivos previos antes de lanzar la aplicación**
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
 
-# Lanzar la interfaz
+# **Lanzar la interfaz**
 demo.launch(debug=True)
