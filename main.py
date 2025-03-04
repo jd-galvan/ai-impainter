@@ -1,8 +1,10 @@
+import io
+import cv2
+import os
 import gradio as gr
+from dotenv import load_dotenv
 from PIL import Image
 import numpy as np
-import cv2
-import io
 from libs.sam2.model import SAM2
 from libs.stable_diffusion.impaint.model import SDImpainting
 from libs.blip.model import BLIP
@@ -15,12 +17,16 @@ from utils import (
     delete_files
 )
 
+# Cargando variables de entorno
+load_dotenv()
+
 # Rutas de archivos generados
 RUTA_MASCARA = "processed_mask.png"
 RUTA_IMAGEN_FINAL = "final_output.png"
 
 # Configuración del dispositivo para modelos
-DEVICE = "cuda:1"
+DEVICE = os.environ.get("CUDA_DEVICE")
+print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
 captioning_model = BLIP(DEVICE)
