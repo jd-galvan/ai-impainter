@@ -1,8 +1,8 @@
-# 🧼 Stain Remover
+# 🎨 Stain Remover
 
 ## ✨ Descripción
 
-`stain-remover` es una aplicación en Python diseñada para eliminar manchas en fotografías utilizando modelos avanzados de inteligencia artificial y procesamiento de imágenes. Este proyecto ha sido desarrollado en la **Universidad Politécnica de Valencia (UPV)** como parte del proyecto **Salvem Les Fotos**.
+`ai-impainter` es una aplicación en Python diseñada para realizar impainting a fotografías utilizando modelos avanzados de inteligencia artificial y procesamiento de imágenes. Este proyecto ha sido desarrollado en la **Universidad Politécnica de Valencia (UPV)** como parte del proyecto **Salvem Les Fotos**.
 
 Hace uso de las siguientes tecnologías:
 
@@ -22,8 +22,8 @@ Hace uso de las siguientes tecnologías:
 ### 1️⃣ Clonar el repositorio
 
 ```bash
- git clone https://github.com/tuusuario/stain-remover.git
- cd stain-remover
+ git clone https://github.com/jd-galvan/ai-impainter.git
+ cd ai-impainter
 ```
 
 ### 2️⃣ Crear y activar un entorno virtual (opcional pero recomendado)
@@ -61,7 +61,7 @@ Este proyecto requiere la configuración de variables de entorno para su correct
 Para ejecutar la aplicación, simplemente corre el siguiente comando:
 
 ```bash
-python app.py
+python main.py
 ```
 
 Esto iniciará una interfaz web con **Gradio** donde podrás cargar imágenes y procesarlas para eliminar manchas.
