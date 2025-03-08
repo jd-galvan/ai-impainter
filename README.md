@@ -1,4 +1,4 @@
-# 🎨 Stain Remover
+# 🎨 AI Impainter
 
 ## ✨ Descripción
 
