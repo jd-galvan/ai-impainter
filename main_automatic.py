@@ -145,10 +145,17 @@ with gr.Blocks() as demo:
                 mask_image = segmentation_model.get_mask_by_pixel(
                     x=coords[0], y=coords[1], image=image)
                 mask = generate_binary_mask(mask_image)
+                print(f"Generated mask: {mask}")
 
                 if binary_mask is not None:
-                    binary_mask = np.maximum(binary_mask[:, :, 0], mask)
+                    print("ENTRO A IF")
+                    print(np.shape(binary_mask))
+                    binary_mask = np.maximum(binary_mask[:, :], mask)
+                else:
+                    print("Entro a else")
+                    binary_mask = mask
 
+                print(f"Binary: {binary_mask}")
             # Generación de la máscara
             refined_binary_mask = delete_irrelevant_detected_pixels(
                 binary_mask)
