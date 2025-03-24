@@ -92,7 +92,7 @@ with gr.Blocks() as demo:
             #################
 
             # Convertir a HSV
-            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             hue, sat, val = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
 
             # Crear máscara de daño por color anómalo
