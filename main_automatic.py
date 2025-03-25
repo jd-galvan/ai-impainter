@@ -50,7 +50,7 @@ def on_image_load(image_path):
 # Construcción de la interfaz en Gradio
 with gr.Blocks() as demo:
     with gr.Row():
-        img = gr.Image(label="Input Image", type="filepath")
+        img = gr.Image(label="Input Image", type="filepath", interactive=True)
         processed_img = gr.Image(label="Processed Mask", type="filepath")
 
     with gr.Row():
@@ -189,7 +189,19 @@ with gr.Blocks() as demo:
             print(f"Error: {e}")
             return None
 
+    # **Manejo de selección de la imagen para generar la máscara**
+
+    def on_select(image_path, evt: gr.SelectData):
+        try:
+            coords = evt.index  # Coordenadas del píxel seleccionado
+            print(f"Coordenadas x: {coords[0]} y: {coords[1]}")
+            return RUTA_MASCARA
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
+
     # **Asignar eventos a la interfaz**
+    img.select(on_select, inputs=[img], outputs=processed_img)
     img.change(reset_mask, inputs=[img], outputs=None)
     generate_button.click(generate_mask, inputs=[img], outputs=processed_img)
     send_button.click(process_final_image, inputs=[
