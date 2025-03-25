@@ -139,7 +139,7 @@ with gr.Blocks() as demo:
             #################
 
             binary_mask = None
-            for coords in compacted_points:
+            for coords in compacted_points[:1]:
                 print('COORD X: ' + str(coords[0]) +
                       " COORD Y: " + str(coords[1]))
                 mask_image = segmentation_model.get_mask_by_pixel(
