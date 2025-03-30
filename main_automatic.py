@@ -139,7 +139,10 @@ with gr.Blocks() as demo:
             #################
 
             binary_mask = None
-            for coords in compacted_points[:1]:
+
+            print(f"Coords: {compacted_points}")
+
+            for coords in compacted_points[-1:]:
                 print('COORD X: ' + str(coords[0]) +
                       " COORD Y: " + str(coords[1]))
                 mask_image = segmentation_model.get_mask_by_pixel(
@@ -148,14 +151,12 @@ with gr.Blocks() as demo:
                 print(f"Generated mask: {mask}")
 
                 if binary_mask is not None:
-                    print("ENTRO A IF")
                     print(np.shape(binary_mask))
                     binary_mask = np.maximum(binary_mask[:, :], mask)
                 else:
-                    print("Entro a else")
-                    binary_mask = mask
+                    binary_mask = mask.copy()
 
-                print(f"Binary: {binary_mask}")
+            
             # Generación de la máscara
             refined_binary_mask = delete_irrelevant_detected_pixels(
                 binary_mask)
@@ -172,7 +173,6 @@ with gr.Blocks() as demo:
         except Exception as e:
             print(f"Error: {e}")
             return None
-
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
         delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])

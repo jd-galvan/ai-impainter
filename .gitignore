@@ -179,3 +179,4 @@ checkpoints/
 # Temp Image Files
 final_output.png
 processed_mask.png
+*.png
