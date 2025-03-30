@@ -86,7 +86,7 @@ with gr.Blocks() as demo:
     # **Asignar la función para que se ejecute cuando la imagen se cargue**
     img.change(on_image_load, inputs=[img], outputs=text_input)
 
-    def generate_mask_in_pixel(image_path: str, coords: list[int]):
+    def generate_mask_in_pixel(image_path: str, x_coord: int, y_coord: int):
         try:
             image = cv2.imread(image_path)
             if image is None:
@@ -97,7 +97,7 @@ with gr.Blocks() as demo:
 
             # Generación de la máscara
             mask_image = segmentation_model.get_mask_by_pixel(
-                x=coords[0], y=coords[1], image=image)
+                x=x_coord, y=y_coord, image=image)
             binary_mask = generate_binary_mask(mask_image)
             refined_binary_mask = delete_irrelevant_detected_pixels(
                 binary_mask)
@@ -122,7 +122,9 @@ with gr.Blocks() as demo:
 
     # **Manejo de selección de la imagen para generar la máscara**
     def on_select(image_path, evt: gr.SelectData):
-        return generate_mask_in_pixel(image_path=image_path, coords=evt.index), evt.index[0], evt.index[1]
+        x_coord = evt.index[0]
+        y_coord = evt.index[1]
+        return generate_mask_in_pixel(image_path, x_coord, y_coord), x_coord, y_coord
     
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
@@ -148,7 +150,7 @@ with gr.Blocks() as demo:
     # **Asignar eventos a la interfaz**
     img.select(on_select, inputs=[img], outputs=[processed_img, x_input, y_input])
     detect_button.click(generate_mask_in_pixel, inputs=[img, x_input, y_input], outputs=processed_img)
-    processed_img.clear(on_clear_processed_mask, outputs=[processed_img, [x_input, y_input]])
+    processed_img.clear(on_clear_processed_mask, outputs=[processed_img, x_input, y_input])
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
