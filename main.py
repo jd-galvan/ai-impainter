@@ -148,7 +148,7 @@ with gr.Blocks() as demo:
     # **Asignar eventos a la interfaz**
     img.select(on_select, inputs=[img], outputs=[processed_img, x_input, y_input])
     detect_button.click(generate_mask_in_pixel, inputs=[img, x_input, y_input], outputs=processed_img)
-    processed_img.clear(on_clear_processed_mask, outputs=[processed_img, x_input, y_input])
+    processed_img.clear(on_clear_processed_mask, outputs=[processed_img, [x_input, y_input]])
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
