@@ -48,9 +48,20 @@ def on_image_load(image_path):
 
 # Construcción de la interfaz en Gradio
 with gr.Blocks() as demo:
+    gr.Markdown("## AI Impainter")
+    gr.Markdown(
+        "Selecciona un píxel haciendo clic en la imagen o ingresa las coordenadas manualmente en los campos X y Y. "
+        "El sistema detectará automáticamente la región correspondiente."
+    )
+
     with gr.Row():
         img = gr.Image(label="Input Image", type="filepath", interactive=True)
         processed_img = gr.Image(label="Processed Mask", type="filepath")
+
+    with gr.Row():
+        x_input = gr.Number(label="X", precision=0)
+        y_input = gr.Number(label="Y", precision=0)
+        detect_button = gr.Button("Detectar")
 
     with gr.Row():
         text_input = gr.Textbox(label="Enter prompt",
@@ -75,8 +86,7 @@ with gr.Blocks() as demo:
     # **Asignar la función para que se ejecute cuando la imagen se cargue**
     img.change(on_image_load, inputs=[img], outputs=text_input)
 
-    # **Manejo de selección de la imagen para generar la máscara**
-    def on_select(image_path, evt: gr.SelectData):
+    def generate_mask_in_pixel(image_path: str, coords: list[int]):
         try:
             image = cv2.imread(image_path)
             if image is None:
@@ -84,7 +94,6 @@ with gr.Blocks() as demo:
                     "No se pudo cargar la imagen. Verifica la ruta.")
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            coords = evt.index  # Coordenadas del píxel seleccionado
 
             # Generación de la máscara
             mask_image = segmentation_model.get_mask_by_pixel(
@@ -109,8 +118,12 @@ with gr.Blocks() as demo:
             return RUTA_MASCARA
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            return None        
 
+    # **Manejo de selección de la imagen para generar la máscara**
+    def on_select(image_path, evt: gr.SelectData):
+        return generate_mask_in_pixel(image_path=image_path, coords=evt.index), evt.index[0], evt.index[1]
+    
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
         delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
@@ -128,7 +141,8 @@ with gr.Blocks() as demo:
             return None
 
     # **Asignar eventos a la interfaz**
-    img.select(on_select, inputs=[img], outputs=processed_img)
+    img.select(on_select, inputs=[img], outputs=[processed_img, x_input, y_input])
+    detect_button.click(generate_mask_in_pixel, inputs=[img, x_input, y_input], outputs=processed_img)
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
