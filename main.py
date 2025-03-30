@@ -139,10 +139,16 @@ with gr.Blocks() as demo:
         except Exception as e:
             print(f"Error: {e}")
             return None
+        
+    def on_clear_processed_mask():
+        delete_files([RUTA_MASCARA])
+        return None, None, None  # Limpiar imagen + X + Y
+
 
     # **Asignar eventos a la interfaz**
     img.select(on_select, inputs=[img], outputs=[processed_img, x_input, y_input])
     detect_button.click(generate_mask_in_pixel, inputs=[img, x_input, y_input], outputs=processed_img)
+    processed_img.clear(on_clear_processed_mask, outputs=[processed_img, x_input, y_input])
     img.change(reset_mask, inputs=[img], outputs=None)
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
