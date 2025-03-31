@@ -49,3 +49,16 @@ class SAM2:
         )
 
         return masks[0]
+    
+    def get_mask_by_bounding_box(self, x1: float, y1: float, x2: float, y2: float, image: np.ndarray):
+        # Configurar la imagen en el predictor
+        input_box = np.array([x1, y1, x2, y2])
+        masks, scores, _ = self.predictor.predict(
+            point_coords=None,
+            point_labels=None,
+            box=input_box[None, :],
+            multimask_output=False,
+        )
+
+        return masks[0]
+
