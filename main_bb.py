@@ -50,7 +50,7 @@ def on_image_load(image_path):
 with gr.Blocks() as demo:
     gr.Markdown("## AI Impainter")
     gr.Markdown(
-        "Ingresa coordenadas x1, y1, x2 / y2 para detectar elemento segun bounding box. "
+        "Ingresa coordenadas x1, y1, x2 & y2 para detectar elemento segun bounding box. "
         "El sistema detectará la región correspondiente."
     )
 
