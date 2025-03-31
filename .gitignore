@@ -180,3 +180,6 @@ checkpoints/
 final_output.png
 processed_mask.png
 *.png
+
+# MACOS
+.DS_Store
