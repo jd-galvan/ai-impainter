@@ -1,0 +1,7 @@
+path: /home/salvem/jgalvan/ai-impainter/tools/trainer/yolov8/dataset # absolute path to dataset
+train: train/images # relative path to training images
+val: val/images # relative path to validation images
+
+# classes
+names:
+  0: stain

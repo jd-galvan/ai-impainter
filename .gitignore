@@ -183,3 +183,8 @@ processed_mask.png
 
 # MACOS
 .DS_Store
+
+# Training files
+runs/
+dataset/
+*.pt
