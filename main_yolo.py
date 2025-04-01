@@ -31,7 +31,7 @@ DEVICE = os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
-captioning_model = BLIP(DEVICE)
+#captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8()
@@ -39,10 +39,15 @@ yolo_model = YOLOV8()
 # Lista Yolos entrenado
 def list_best_pt():
     paths = glob.glob("./runs/detect/train*/weights/best.pt")
+    
+    if paths:
+      yolo_model.set_model(paths[0])
+
     return paths
 
 # Setea yolo
 def upload_yolo_model(path):
+    print(f"Se cambia a modelo {path}")
     yolo_model.set_model(path)
 
 # **Función que se ejecuta al cargar una imagen**
@@ -71,10 +76,7 @@ with gr.Blocks() as demo:
         processed_img = gr.Image(label="Processed Mask", type="filepath")
 
     with gr.Row(equal_height=True):
-        with gr.Column(scale=9):
-          yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles")
-        with gr.Column(scale=1, min_width=50):
-          set_yolo_btn = gr.Button(value="📤")
+        yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles")
 
     with gr.Row():
         detect_button = gr.Button("Detectar Manchas")
@@ -100,7 +102,7 @@ with gr.Blocks() as demo:
         final_image = gr.Image(label="Final Output", type="filepath")
 
     # **Asignar la función para que se ejecute cuando la imagen se cargue**
-    img.change(on_image_load, inputs=[img], outputs=text_input)
+    # img.change(on_image_load, inputs=[img], outputs=text_input)
 
     def generate_mask_with_yolo(image_path: str):
         try:
@@ -149,7 +151,7 @@ with gr.Blocks() as demo:
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
         delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
-        return None
+        return None, None, None
 
     # **Procesar la imagen con la máscara y el texto de entrada**
     def process_final_image(original_image_path, mask_path, text, strength, guidance, negative_prompt):
@@ -168,10 +170,10 @@ with gr.Blocks() as demo:
 
 
     # **Asignar eventos a la interfaz**
+    yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
     detect_button.click(generate_mask_with_yolo, inputs=[img], outputs=[img_yolo, processed_img])
-    set_yolo_btn.click(fn=upload_yolo_model, inputs=[yolo_model_path], outputs=None)
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
-    img.change(reset_mask, inputs=[img], outputs=None)
+    img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
    
