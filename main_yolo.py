@@ -79,6 +79,12 @@ with gr.Blocks() as demo:
         yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles")
 
     with gr.Row():
+        chk_centric_pixel = gr.Checkbox(
+          label="Usar pixeles céntricos",
+          info="Si activas esta opción la máscara se generará dandole a SAM el pixel del centro del bounding box detectado por YOLO"
+        )
+
+    with gr.Row():
         detect_button = gr.Button("Detectar Manchas")
 
     with gr.Row():
@@ -104,7 +110,7 @@ with gr.Blocks() as demo:
     # **Asignar la función para que se ejecute cuando la imagen se cargue**
     # img.change(on_image_load, inputs=[img], outputs=text_input)
 
-    def generate_mask_with_yolo(image_path: str):
+    def generate_mask_with_yolo(image_path: str, checkbox_value):
         try:
             yolo_image, boxes = yolo_model.get_bounding_box(image_path)
             print(yolo_image) 
@@ -118,13 +124,20 @@ with gr.Blocks() as demo:
             binary_mask = None
             # Generación de la máscara
             for b in boxes:
-              mask_image = segmentation_model.get_mask_by_bounding_box(
-                  x1=b[0],
-                  y1=b[1],
-                  x2=b[2],
-                  y2=b[3],
+              if checkbox_value:
+                mask_image = segmentation_model.get_mask_by_pixel(
+                  x=b[0] + ((b[2]-b[0])/2),
+                  y=b[1] + (b[3]-b[1])/2,
                   image=image
-              )
+                )
+              else:
+                mask_image = segmentation_model.get_mask_by_bounding_box(
+                    x1=b[0],
+                    y1=b[1],
+                    x2=b[2],
+                    y2=b[3],
+                    image=image
+                )
               mask = generate_binary_mask(mask_image)
 
               if binary_mask is not None:
@@ -171,7 +184,7 @@ with gr.Blocks() as demo:
 
     # **Asignar eventos a la interfaz**
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img], outputs=[img_yolo, processed_img])
+    detect_button.click(generate_mask_with_yolo, inputs=[img, chk_centric_pixel], outputs=[img_yolo, processed_img])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
