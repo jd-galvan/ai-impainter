@@ -59,7 +59,7 @@ def on_image_load(image_path):
         caption = captioning_model.generate_caption(
             image_path)  # Generar el caption usando el path
         print("BLIP captioning finished")
-        return caption  # Retornar el caption para que se muestre en el campo de texto
+        return caption, image_path  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
     except Exception as e:
         print(f"Error en la generación del caption: {e}")
         return "Error en la generación del caption"
@@ -67,7 +67,7 @@ def on_image_load(image_path):
 
 # Construcción de la interfaz en Gradio
 with gr.Blocks() as demo:
-    gr.Markdown("## AI Impainter")
+    gr.Markdown("# AI Impainter")
     gr.Markdown(
         "Con YOLOV8"
     )
@@ -75,7 +75,7 @@ with gr.Blocks() as demo:
     with gr.Row():
         img = gr.Image(label="Input Image", type="filepath")
         img_yolo = gr.Image(label="Yolo Image", type="pil")
-        processed_img = gr.Image(label="Processed Mask", type="filepath")
+        processed_img = gr.Image(label="Processed Mask", type="filepath", interactive=False)
 
     with gr.Row(equal_height=True):
         yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles", scale=4)
@@ -118,8 +118,12 @@ with gr.Blocks() as demo:
     with gr.Row():
         final_image = gr.Image(label="Final Output", type="filepath")
 
-    # **Asignar la función para que se ejecute cuando la imagen se cargue**
-    # img.change(on_image_load, inputs=[img], outputs=text_input)
+    gr.Markdown("---")
+    gr.Markdown("## Resultados")
+
+    with gr.Row():
+        original_img = gr.Image(label="Original Image", type="filepath", interactive=False)
+        impainted_img = gr.Image(label="Impainted Image", type="filepath", interactive=False)
 
     def generate_mask_with_yolo(image_path: str, checkbox_value, confidence):
         try:
@@ -191,7 +195,7 @@ with gr.Blocks() as demo:
             print("SD XL Impainting process finished")
 
             new_image.save(RUTA_IMAGEN_FINAL)
-            return RUTA_IMAGEN_FINAL
+            return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL
         except Exception as e:
             print(f"Error: {e}")
             return None
@@ -202,13 +206,13 @@ with gr.Blocks() as demo:
 
 
     # **Asignar eventos a la interfaz**
-    img.change(on_image_load, inputs=[img], outputs=text_input)
+    img.change(on_image_load, inputs=[img], outputs=[text_input, original_img])
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
     detect_button.click(generate_mask_with_yolo, inputs=[img, chk_centric_pixel, yolo_confidence], outputs=[img_yolo, processed_img])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=final_image)
+                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=[final_image, impainted_img])
    
 
 # **Limpiar archivos previos antes de lanzar la aplicación**
