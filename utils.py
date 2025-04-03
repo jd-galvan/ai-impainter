@@ -59,5 +59,3 @@ def delete_files(file_paths):
         if os.path.exists(file_path):  # Verifica si el archivo existe
             os.remove(file_path)
             print(f"Archivo '{file_path}' eliminado con éxito.")
-        else:
-            print(f"El archivo '{file_path}' no existe.")

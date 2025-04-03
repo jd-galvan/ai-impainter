@@ -11,6 +11,8 @@ class SDImpainting:
         ).to(device)
         self.generator = torch.Generator(device=device).manual_seed(0)
 
+        print("Modelo Stable Diffusion XL 1.0 descargado ✅")
+
     def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float):
         # Carga las imágenes originales
         original_image = load_image(image_path)

@@ -14,6 +14,9 @@ class BLIP:
         self.model = BlipForConditionalGeneration.from_pretrained(
             "Salesforce/blip-image-captioning-base", token=huggingface_token).to(self.device)
 
+        print("Modelo BLIP descargado ✅")
+
+
     def generate_caption(self, image_path: str):
         """Detect what is in the picture"""
         raw_image = Image.open(image_path).convert('RGB')

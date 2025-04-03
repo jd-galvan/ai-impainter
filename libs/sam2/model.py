@@ -23,8 +23,8 @@ class SAM2:
                 f"Descargando el modelo SAM2 {model} desde {self.model_url}...")
             urllib.request.urlretrieve(self.model_url, self.model_path)
             print("Descarga de modelo SAM2 completa.")
-        else:
-            print(f"El modelo de SAM2 {model} ya está descargado.")
+
+        print("Modelo SAM2 descargado ✅")
 
         sam_checkpoint = f"./checkpoints/{model}.pth"
         model_type = "vit_h"

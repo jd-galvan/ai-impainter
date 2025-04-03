@@ -12,8 +12,8 @@ class YOLOV8:
     def set_model(self, model_path):
       self.model = YOLO(model_path)
     
-    def get_bounding_box(self, image_path: str):
-      results = self.model.predict(source=image_path, save=False, conf=0.25, verbose=False)
+    def get_bounding_box(self, confidence: float, image_path: str):
+      results = self.model.predict(source=image_path, save=False, conf=confidence, verbose=False)
     
       # Imagen con bounding boxes dibujadas
       annotated_frame = results[0].plot()

@@ -31,7 +31,7 @@ DEVICE = os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
-#captioning_model = BLIP(DEVICE)
+captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8()
@@ -55,8 +55,10 @@ def upload_yolo_model(path):
 
 def on_image_load(image_path):
     try:
+        print("BLIP captioning started 👀")
         caption = captioning_model.generate_caption(
             image_path)  # Generar el caption usando el path
+        print("BLIP captioning finished")
         return caption  # Retornar el caption para que se muestre en el campo de texto
     except Exception as e:
         print(f"Error en la generación del caption: {e}")
@@ -76,7 +78,16 @@ with gr.Blocks() as demo:
         processed_img = gr.Image(label="Processed Mask", type="filepath")
 
     with gr.Row(equal_height=True):
-        yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles")
+        yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles", scale=4)
+        yolo_confidence = gr.Slider(
+            minimum=0,
+            maximum=1,
+            value=0.25,
+            step=0.01,
+            label="Confianza",
+            scale=1,
+            interactive=True
+        )
 
     with gr.Row():
         chk_centric_pixel = gr.Checkbox(
@@ -110,10 +121,12 @@ with gr.Blocks() as demo:
     # **Asignar la función para que se ejecute cuando la imagen se cargue**
     # img.change(on_image_load, inputs=[img], outputs=text_input)
 
-    def generate_mask_with_yolo(image_path: str, checkbox_value):
+    def generate_mask_with_yolo(image_path: str, checkbox_value, confidence):
         try:
-            yolo_image, boxes = yolo_model.get_bounding_box(image_path)
-            print(yolo_image) 
+            print("YOLO detection started 🔍")
+            yolo_image, boxes = yolo_model.get_bounding_box(confidence, image_path)
+            print(f"YOLO detection has finished succesfully. {len(boxes)} boxes")
+
             image = cv2.imread(image_path)
             if image is None:
                 raise ValueError(
@@ -123,7 +136,8 @@ with gr.Blocks() as demo:
 
             binary_mask = None
             # Generación de la máscara
-            for b in boxes:
+            for i, b in enumerate(boxes):
+              print(f"SAM detection for box {i+1} started 🔬")
               if checkbox_value:
                 mask_image = segmentation_model.get_mask_by_pixel(
                   x=b[0] + ((b[2]-b[0])/2),
@@ -138,6 +152,8 @@ with gr.Blocks() as demo:
                     y2=b[3],
                     image=image
                 )
+
+              print(f"SAM detection for box {i+1} has finished successfully")
               mask = generate_binary_mask(mask_image)
 
               if binary_mask is not None:
@@ -169,8 +185,11 @@ with gr.Blocks() as demo:
     # **Procesar la imagen con la máscara y el texto de entrada**
     def process_final_image(original_image_path, mask_path, text, strength, guidance, negative_prompt):
         try:
+            print("SD XL Impainting started 🎨")
             new_image = impainting_model.impaint(
                 image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, negative_prompt=negative_prompt)
+            print("SD XL Impainting process finished")
+
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL
         except Exception as e:
@@ -183,8 +202,9 @@ with gr.Blocks() as demo:
 
 
     # **Asignar eventos a la interfaz**
+    img.change(on_image_load, inputs=[img], outputs=text_input)
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img, chk_centric_pixel], outputs=[img_yolo, processed_img])
+    detect_button.click(generate_mask_with_yolo, inputs=[img, chk_centric_pixel, yolo_confidence], outputs=[img_yolo, processed_img])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
