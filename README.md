@@ -6,10 +6,11 @@
 
 Hace uso de las siguientes tecnologías:
 
-- 🖼️ **SAM2** (Segment Anything Model v2) para la segmentación de manchas.
+- 🔍 **YoloV8** para detección automática de regiones con manchas.
+- 🔬 **SAM2** (Segment Anything Model v2) para la segmentación de manchas.
 - 🎨 **Stable Diffusion Inpainting XL** para la restauración de imágenes.
-- 🏞️ **OpenCV** para el procesamiento de imágenes.
-- 🔍 **BLIP** (Bootstrapped Language-Image Pretraining) para mejorar la interpretación de la imagen.
+- 🏞️  **OpenCV** para el procesamiento de imágenes.
+- 👀 **BLIP** (Bootstrapped Language-Image Pretraining) para mejorar la interpretación de la imagen.
 - 🌐 **Gradio** para la creación de una interfaz web accesible.
 
 ## ⚙️ Requisitos
