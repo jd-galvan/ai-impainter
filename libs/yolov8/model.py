@@ -1,13 +1,17 @@
 import os
 import cv2
+import torch
 from PIL import Image
 from ultralytics import YOLO
 
+#device = torch.device('cuda:0')
+
 class YOLOV8:
-    def __init__(self, model_path: str=None):
+    def __init__(self, model_path: str=None, device: str="cuda:0"):
+      torch.device(device)
       self.model = None
       if model_path is not None:
-        self.model = YOLO(model_path) 
+        self.model = YOLO(model_path)
 
     def set_model(self, model_path):
       self.model = YOLO(model_path)
