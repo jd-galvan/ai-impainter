@@ -1,6 +1,7 @@
 import io
 import cv2
 import os
+import re
 import glob
 import gradio as gr
 from dotenv import load_dotenv
@@ -31,19 +32,31 @@ DEVICE = os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
-captioning_model = BLIP(DEVICE)
+#captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
-yolo_model = YOLOV8()
+yolo_model = YOLOV8(device=DEVICE)
 
 # Lista Yolos entrenado
 def list_best_pt():
     paths = glob.glob("./runs/detect/train*/weights/best.pt")
+
+    # Función para extraer el número de la carpeta (train, train2, etc.)
+    def extract_number(path):
+        match = re.search(r'train(\d*)', path)
+        return int(match.group(1)) if match and match.group(1) else 0
+
+    # Ordenar de forma descendente según el número
+    paths.sort(key=extract_number, reverse=True)
+
+    print(f"Modelos detectados: {len(paths)}")
     
     if paths:
-      yolo_model.set_model(paths[0])
+        yolo_model.set_model(paths[0])
 
     return paths
+
+
 
 # Setea yolo
 def upload_yolo_model(path):
@@ -55,11 +68,12 @@ def upload_yolo_model(path):
 
 def on_image_load(image_path):
     try:
-        print("BLIP captioning started 👀")
-        caption = captioning_model.generate_caption(
-            image_path)  # Generar el caption usando el path
-        print("BLIP captioning finished")
-        return caption, image_path  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
+        #print("BLIP captioning started 👀")
+        #caption = captioning_model.generate_caption(
+            #image_path)  # Generar el caption usando el path
+        caption=""
+        #print("BLIP captioning finished")
+        return caption, image_path, None  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
     except Exception as e:
         print(f"Error en la generación del caption: {e}")
         return "Error en la generación del caption"
@@ -87,12 +101,6 @@ with gr.Blocks() as demo:
             label="Confianza",
             scale=1,
             interactive=True
-        )
-
-    with gr.Row():
-        chk_centric_pixel = gr.Checkbox(
-          label="Usar pixeles céntricos",
-          info="Si activas esta opción la máscara se generará dandole a SAM el pixel del centro del bounding box detectado por YOLO"
         )
 
     with gr.Row():
@@ -125,7 +133,7 @@ with gr.Blocks() as demo:
         original_img = gr.Image(label="Original Image", type="filepath", interactive=False)
         impainted_img = gr.Image(label="Impainted Image", type="filepath", interactive=False)
 
-    def generate_mask_with_yolo(image_path: str, checkbox_value, confidence):
+    def generate_mask_with_yolo(image_path: str, confidence):
         try:
             print("YOLO detection started 🔍")
             yolo_image, boxes = yolo_model.get_bounding_box(confidence, image_path)
@@ -140,43 +148,35 @@ with gr.Blocks() as demo:
 
             binary_mask = None
             # Generación de la máscara
-            for i, b in enumerate(boxes):
-              print(f"SAM detection for box {i+1} started 🔬")
-              if checkbox_value:
-                mask_image = segmentation_model.get_mask_by_pixel(
-                  x=b[0] + ((b[2]-b[0])/2),
-                  y=b[1] + (b[3]-b[1])/2,
-                  image=image
-                )
-              else:
-                mask_image = segmentation_model.get_mask_by_bounding_box(
-                    x1=b[0],
-                    y1=b[1],
-                    x2=b[2],
-                    y2=b[3],
-                    image=image
-                )
+            if (len(boxes)>0):
+              print(f"SAM detection for {len(boxes)} box started 🔬")
+              masks = segmentation_model.get_mask_by_bounding_boxes(boxes=boxes, image=image)
+              print(f"SAM detection has finished successfully")
 
-              print(f"SAM detection for box {i+1} has finished successfully")
-              mask = generate_binary_mask(mask_image)
+              # Mezclar multiples mascaras de SAM
+              numpy_masks = [mask.cpu().numpy() for mask in masks]
+              combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
+              for m in numpy_masks:
+                combined_mask = np.logical_or(combined_mask, m)
 
-              if binary_mask is not None:
-                  binary_mask = np.maximum(binary_mask[:, :], mask)
-              else:
-                  binary_mask = mask.copy()
-            
-            refined_binary_mask = delete_irrelevant_detected_pixels(
-                binary_mask)
-            without_irrelevant_pixels_mask = fill_little_spaces(
-                refined_binary_mask)
-            dilated_mask = soften_contours(without_irrelevant_pixels_mask)
-            blurred_mask = dilated_mask
+              # Generar mascara binaria
+              binary_mask=generate_binary_mask(combined_mask)
+              print("Refining generated mask with OpenCV 🖌") 
+              refined_binary_mask = delete_irrelevant_detected_pixels(
+                  binary_mask)
+              without_irrelevant_pixels_mask = fill_little_spaces(
+                  refined_binary_mask)
+              dilated_mask = soften_contours(without_irrelevant_pixels_mask)
+              blurred_mask = dilated_mask
+              print("Image was refined successfully!")
 
-            # Guardar máscara procesada
-            processed_mask = Image.fromarray(blurred_mask, mode='L')
-            processed_mask.save(RUTA_MASCARA)
+              # Guardar máscara procesada
+              processed_mask = Image.fromarray(blurred_mask, mode='L')
+              processed_mask.save(RUTA_MASCARA)
 
-            return yolo_image, RUTA_MASCARA
+              return yolo_image, RUTA_MASCARA
+            else:
+              return yolo_image, None
         except Exception as e:
             print(f"Error: {e}")
             return None        
@@ -206,9 +206,9 @@ with gr.Blocks() as demo:
 
 
     # **Asignar eventos a la interfaz**
-    img.change(on_image_load, inputs=[img], outputs=[text_input, original_img])
+    img.change(on_image_load, inputs=[img], outputs=[text_input, original_img, impainted_img])
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img, chk_centric_pixel, yolo_confidence], outputs=[img_yolo, processed_img])
+    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[img_yolo, processed_img])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[

@@ -1,4 +1,5 @@
 import os
+import torch
 import urllib.request
 from segment_anything import sam_model_registry, SamPredictor
 import numpy as np
@@ -63,3 +64,16 @@ class SAM2:
 
         return masks[0]
 
+    def get_mask_by_bounding_boxes(self, boxes: list, image: np.ndarray):
+        self.predictor.set_image(image)
+        input_boxes = torch.tensor(boxes, device=self.predictor.device)
+
+        transformed_boxes = self.predictor.transform.apply_boxes_torch(input_boxes, image.shape[:2])
+        masks, _, _ = self.predictor.predict_torch(
+          point_coords=None,
+          point_labels=None,
+          boxes=transformed_boxes,
+          multimask_output=False,
+        )
+
+        return masks
