@@ -189,3 +189,4 @@ runs/
 dataset/
 *.pt
 .gradio/
+nohup.out

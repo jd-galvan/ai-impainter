@@ -39,11 +39,11 @@ yolo_model = YOLOV8(device=DEVICE)
 
 # Lista Yolos entrenado
 def list_best_pt():
-    paths = glob.glob("./runs/detect/train*/weights/best.pt")
+    paths = glob.glob("./tools/trainer/yolov8/runs/detect/full_dataset_yolov8n*/weights/best.pt")
 
     # Función para extraer el número de la carpeta (train, train2, etc.)
     def extract_number(path):
-        match = re.search(r'train(\d*)', path)
+        match = re.search(r'full_dataset_yolov8n(\d*)', path)
         return int(match.group(1)) if match and match.group(1) else 0
 
     # Ordenar de forma descendente según el número
@@ -70,7 +70,7 @@ def on_image_load(image_path):
     try:
         #print("BLIP captioning started 👀")
         #caption = captioning_model.generate_caption(
-            #image_path)  # Generar el caption usando el path
+           # image_path)  # Generar el caption usando el path
         caption=""
         #print("BLIP captioning finished")
         return caption, image_path, None  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
@@ -96,7 +96,7 @@ with gr.Blocks() as demo:
         yolo_confidence = gr.Slider(
             minimum=0,
             maximum=1,
-            value=0.25,
+            value=0.1,
             step=0.01,
             label="Confianza",
             scale=1,
@@ -118,10 +118,12 @@ with gr.Blocks() as demo:
 
     with gr.Row():
         negative_prompt = gr.Textbox(
-            label="Negative prompt", placeholder="Write negative prompt...")
+            label="Negative prompt", 
+            placeholder="Write negative prompt...", 
+            value="Restore the original clean surface, natural texture and lighting. Remove all stains and blemishes in the masked areas, seamlessly blending with the surrounding. Maintain realistic details and consistency with the rest of the image.")
 
     with gr.Row():
-        send_button = gr.Button("Generate Final Image")
+        send_button = gr.Button("Impaint Image")
 
     with gr.Row():
         final_image = gr.Image(label="Final Output", type="filepath")
