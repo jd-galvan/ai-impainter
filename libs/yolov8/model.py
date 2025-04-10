@@ -8,15 +8,21 @@ from ultralytics import YOLO
 
 class YOLOV8:
     def __init__(self, model_path: str=None, device: str="cuda:0"):
+      torch.cuda.empty_cache()
       torch.device(device)
+      self.device = device
       self.model = None
       if model_path is not None:
         self.model = YOLO(model_path)
+        self.model.to(self.device)
 
     def set_model(self, model_path):
+      torch.cuda.empty_cache()  # Limpia memoria antes de cargar nuevo modelo
       self.model = YOLO(model_path)
+      self.model.to(self.device)
     
     def get_bounding_box(self, confidence: float, image_path: str):
+      torch.cuda.empty_cache()
       results = self.model.predict(source=image_path, save=False, conf=confidence, verbose=False)
     
       # Imagen con bounding boxes dibujadas

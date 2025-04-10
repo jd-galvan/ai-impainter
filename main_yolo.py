@@ -39,24 +39,28 @@ yolo_model = YOLOV8(device=DEVICE)
 
 # Lista Yolos entrenado
 def list_best_pt():
-    paths = glob.glob("./tools/trainer/yolov8/runs/detect/full_dataset_yolov8n*/weights/best.pt")
+    # Buscar todos los archivos best.pt dentro de cualquier carpeta dentro de detect
+    paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
 
-    # Función para extraer el número de la carpeta (train, train2, etc.)
+    # Extraer un número si lo hay (por ejemplo, para ordenarlo), o simplemente usar el nombre como clave
     def extract_number(path):
-        match = re.search(r'full_dataset_yolov8n(\d*)', path)
-        return int(match.group(1)) if match and match.group(1) else 0
+        # Intenta buscar un número al final del nombre del directorio contenedor
+        match = re.search(r'detect/([^/]+)', path)
+        if match:
+            name = match.group(1)
+            num_match = re.search(r'(\d+)', name)
+            return int(num_match.group(1)) if num_match else 0
+        return 0
 
-    # Ordenar de forma descendente según el número
+    # Ordenar (puedes cambiar reverse a False si quieres del más viejo al más nuevo)
     paths.sort(key=extract_number, reverse=True)
 
-    print(f"Modelos detectados: {len(paths)}")
-    
+    print(f"Modelos YOLO encontrados: {len(paths)}")
+
     if paths:
-        yolo_model.set_model(paths[0])
+        yolo_model.set_model(paths[0])  # Cargar el más "nuevo" según el criterio de orden
 
     return paths
-
-
 
 # Setea yolo
 def upload_yolo_model(path):
@@ -103,6 +107,7 @@ with gr.Blocks() as demo:
             interactive=True
         )
 
+    error_message_detection = gr.Markdown()
     with gr.Row():
         detect_button = gr.Button("Detectar Manchas")
 
@@ -122,6 +127,7 @@ with gr.Blocks() as demo:
             placeholder="Write negative prompt...", 
             value="Restore the original clean surface, natural texture and lighting. Remove all stains and blemishes in the masked areas, seamlessly blending with the surrounding. Maintain realistic details and consistency with the rest of the image.")
 
+    error_message_impaint = gr.Markdown()
     with gr.Row():
         send_button = gr.Button("Impaint Image")
 
@@ -176,12 +182,12 @@ with gr.Blocks() as demo:
               processed_mask = Image.fromarray(blurred_mask, mode='L')
               processed_mask.save(RUTA_MASCARA)
 
-              return yolo_image, RUTA_MASCARA
+              return yolo_image, RUTA_MASCARA, ""
             else:
-              return yolo_image, None
+              return yolo_image, None, ""
         except Exception as e:
             print(f"Error: {e}")
-            return None        
+            return None, None, f"<span style='color:red;'>❌ Error: {str(e)}</span>"
     
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
@@ -197,10 +203,10 @@ with gr.Blocks() as demo:
             print("SD XL Impainting process finished")
 
             new_image.save(RUTA_IMAGEN_FINAL)
-            return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL
+            return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL, ""
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            return None, None, f"<span style='color:red;'>❌ Error: {str(e)}</span>" 
         
     def on_clear_processed_mask():
         delete_files([RUTA_MASCARA])
@@ -210,11 +216,11 @@ with gr.Blocks() as demo:
     # **Asignar eventos a la interfaz**
     img.change(on_image_load, inputs=[img], outputs=[text_input, original_img, impainted_img])
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[img_yolo, processed_img])
+    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[img_yolo, processed_img, error_message_detection])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=[final_image, impainted_img])
+                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=[final_image, impainted_img, error_message_impaint])
    
 
 # **Limpiar archivos previos antes de lanzar la aplicación**
