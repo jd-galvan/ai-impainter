@@ -125,7 +125,7 @@ with gr.Blocks() as demo:
         negative_prompt = gr.Textbox(
             label="Negative prompt", 
             placeholder="Write negative prompt...", 
-            value="Restore the original clean surface, natural texture and lighting. Remove all stains and blemishes in the masked areas, seamlessly blending with the surrounding. Maintain realistic details and consistency with the rest of the image.")
+            value="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look")
 
     error_message_impaint = gr.Markdown()
     with gr.Row():
