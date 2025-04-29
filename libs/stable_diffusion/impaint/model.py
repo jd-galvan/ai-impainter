@@ -13,7 +13,7 @@ class SDImpainting:
 
         print("Modelo Stable Diffusion XL 1.0 descargado ✅")
 
-    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float):
+    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int):
         # Carga las imágenes originales
         original_image = load_image(image_path)
         original_mask = load_image(mask_path)
@@ -50,6 +50,7 @@ class SDImpainting:
             guidance_scale=guidance,
             strength=strength,
             generator=self.generator,
+            num_inference_steps=steps
         ).images[0]
 
         # Recorta la parte central que contiene la imagen original redimensionada

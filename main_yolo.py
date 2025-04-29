@@ -119,7 +119,8 @@ with gr.Blocks() as demo:
         strength = gr.Slider(minimum=0.0, maximum=1.0,
                              value=0.99, label="Strength", interactive=True)
         guidance = gr.Slider(minimum=0.0, maximum=50.0,
-                             value=7.0, label="Guidance Scale", interactive=True)
+                             value=9.0, label="Guidance Scale", interactive=True)
+        steps = gr.Slider(minimum=0.0, maximum=100.0, value=20.0, step=1.0, label="Steps", interactive=True)
 
     with gr.Row():
         negative_prompt = gr.Textbox(
@@ -195,11 +196,11 @@ with gr.Blocks() as demo:
         return None, None, None
 
     # **Procesar la imagen con la máscara y el texto de entrada**
-    def process_final_image(original_image_path, mask_path, text, strength, guidance, negative_prompt):
+    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt):
         try:
             print("SD XL Impainting started 🎨")
             new_image = impainting_model.impaint(
-                image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, negative_prompt=negative_prompt)
+                image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, steps=steps, negative_prompt=negative_prompt)
             print("SD XL Impainting process finished")
 
             new_image.save(RUTA_IMAGEN_FINAL)
@@ -220,7 +221,7 @@ with gr.Blocks() as demo:
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, negative_prompt], outputs=[final_image, impainted_img, error_message_impaint])
+                      img, processed_img, text_input, strength, guidance, steps, negative_prompt], outputs=[final_image, impainted_img, error_message_impaint])
    
 
 # **Limpiar archivos previos antes de lanzar la aplicación**
