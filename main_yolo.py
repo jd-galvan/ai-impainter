@@ -77,7 +77,7 @@ def on_image_load(image_path):
            # image_path)  # Generar el caption usando el path
         caption=""
         #print("BLIP captioning finished")
-        return caption, image_path, None  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
+        return image_path, None  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
     except Exception as e:
         print(f"Error en la generación del caption: {e}")
         return "Error en la generación del caption"
@@ -112,21 +112,21 @@ with gr.Blocks() as demo:
         detect_button = gr.Button("Detectar Manchas")
 
     with gr.Row():
-        text_input = gr.Textbox(label="Enter prompt",
+        text_input = gr.Textbox(label="Enter prompt", value="",
                                 placeholder="Write prompt for impainting...")
 
     with gr.Row():
         strength = gr.Slider(minimum=0.0, maximum=1.0,
                              value=0.99, label="Strength", interactive=True)
         guidance = gr.Slider(minimum=0.0, maximum=50.0,
-                             value=9.0, label="Guidance Scale", interactive=True)
+                             value=7.0, label="Guidance Scale", interactive=True)
         steps = gr.Slider(minimum=0.0, maximum=100.0, value=20.0, step=1.0, label="Steps", interactive=True)
 
     with gr.Row():
         negative_prompt = gr.Textbox(
             label="Negative prompt", 
             placeholder="Write negative prompt...", 
-            value="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look")
+            value="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text")
 
     error_message_impaint = gr.Markdown()
     with gr.Row():
@@ -215,7 +215,7 @@ with gr.Blocks() as demo:
 
 
     # **Asignar eventos a la interfaz**
-    img.change(on_image_load, inputs=[img], outputs=[text_input, original_img, impainted_img])
+    img.change(on_image_load, inputs=[img], outputs=[original_img, impainted_img])
     yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
     detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[img_yolo, processed_img, error_message_detection])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
@@ -228,4 +228,4 @@ with gr.Blocks() as demo:
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
 
 # **Lanzar la interfaz**
-demo.launch(debug=True)
+demo.launch(debug=True, auth=(os.environ.get("USER"), os.environ.get("PASSWORD")))
