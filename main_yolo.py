@@ -124,6 +124,13 @@ with gr.Blocks() as demo:
                              value=7.0, label="Guidance Scale", interactive=True)
         steps = gr.Slider(minimum=0.0, maximum=100.0, value=20.0, step=1.0, label="Steps", interactive=True)
 
+        with gr.Row():
+            with gr.Column(scale=1):
+                use_padding = gr.Checkbox(label="Usar Mask Padding", value=True, interactive=True)
+            with gr.Column(scale=4):
+                mask_padding_crop = gr.Slider(minimum=0.0, maximum=100.0, value=32.0, label="Mask Padding", interactive=True)
+
+
     with gr.Row():
         negative_prompt = gr.Textbox(
             label="Negative prompt", 
@@ -198,11 +205,12 @@ with gr.Blocks() as demo:
         return None, None, None
 
     # **Procesar la imagen con la máscara y el texto de entrada**
-    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt):
+    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt, use_padding, padding_mask_crop):
         try:
             print("SD XL Impainting started 🎨")
+            padding_mask_crop = padding_mask_crop if use_padding else None
             new_image = impainting_model.impaint(
-                image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, steps=steps, negative_prompt=negative_prompt)
+                image_path=original_image_path, mask_path=mask_path, prompt=text, strength=strength, guidance=guidance, steps=steps, negative_prompt=negative_prompt, padding_mask_crop=padding_mask_crop)
             print("SD XL Impainting process finished")
 
             new_image.save(RUTA_IMAGEN_FINAL)
@@ -215,6 +223,9 @@ with gr.Blocks() as demo:
         delete_files([RUTA_MASCARA])
         return None
 
+    def toggle_slider(use_padding):
+        return gr.update(interactive=use_padding)
+
 
     # **Asignar eventos a la interfaz**
     img.change(on_image_load, inputs=[img], outputs=[original_img, impainted_img])
@@ -223,8 +234,9 @@ with gr.Blocks() as demo:
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, steps, negative_prompt], outputs=[final_image, impainted_img, error_message_impaint])
-   
+                      img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop], outputs=[final_image, impainted_img, error_message_impaint])
+    use_padding.change(fn=toggle_slider, inputs=use_padding, outputs=mask_padding_crop)
+
 
 # **Limpiar archivos previos antes de lanzar la aplicación**
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])

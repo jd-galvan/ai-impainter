@@ -2,9 +2,10 @@ from diffusers import AutoPipelineForInpainting
 import os
 #from diffusers import StableDiffusionInpaintPipeline
 from diffusers.utils import load_image
-from PIL import Image
+from PIL import Image, ImageFilter
 import torch
 import numpy as np
+import cv2
 
 MODEL_IMG_DIM = 1024
 
@@ -25,7 +26,7 @@ class SDImpainting:
         print("Modelo Stable Diffusion XL 1.0 descargado ✅")
         #print("Modelo Stable Diffusion 1.5 descargado ✅")
 
-    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int):
+    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int, padding_mask_crop: int):
         # Carga las imágenes originales
         original_image = load_image(image_path)
         original_mask = load_image(mask_path)
@@ -57,6 +58,11 @@ class SDImpainting:
         canvas_mask.paste(resized_mask, (paste_x, paste_y))
 
         # Ejecuta el pipeline de inpainting en el canvas
+        # Crear kwargs opcionalmente
+        extra_args = {}
+        if padding_mask_crop is not None:
+            extra_args["padding_mask_crop"] = padding_mask_crop
+
         result_canvas = self.pipe(
             prompt=prompt,
             negative_prompt=negative_prompt,
@@ -65,7 +71,8 @@ class SDImpainting:
             guidance_scale=guidance,
             strength=strength,
             generator=self.generator,
-            num_inference_steps=steps
+            num_inference_steps=steps,
+            **extra_args
         ).images[0]
 
         # Recorta la parte central que contiene la imagen original redimensionada
@@ -74,6 +81,15 @@ class SDImpainting:
         # Reescala la imagen resultante a las dimensiones originales
         result_crop = result_crop.resize(
             (orig_width, orig_height), Image.LANCZOS)
+
+        ## TEMPORAL
+        # Recorta la parte central que contiene la imagen original redimensionada
+        result_crop = result_canvas.crop(
+            (paste_x, paste_y, paste_x + new_size[0], paste_y + new_size[1]))
+        # Reescala la imagen resultante a las dimensiones originales
+        result_crop = result_crop.resize(
+            (orig_width, orig_height), Image.LANCZOS)
+
 
         # Fusiona usando la máscara binaria para evitar alteraciones, sobre todo en rostros, por el impainting
         original_np = np.array(original_image)
@@ -88,3 +104,4 @@ class SDImpainting:
         final_result = Image.fromarray(final_np)
 
         return final_result
+
