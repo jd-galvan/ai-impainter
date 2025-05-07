@@ -1,37 +1,21 @@
-from diffusers import AutoPipelineForInpainting
-import os
-#from diffusers import StableDiffusionInpaintPipeline
-from diffusers.utils import load_image
-from PIL import Image
 import torch
+from diffusers import FluxFillPipeline
+from diffusers.utils import load_image
+import os
+from PIL import Image
 import numpy as np
 
 MODEL_IMG_DIM = 1024
 
-class SDImpainting:
+class FluxImpainting:
     def __init__(self, device: str):
-        self.pipe = AutoPipelineForInpainting.from_pretrained(
-          "diffusers/stable-diffusion-xl-1.0-inpainting-0.1", torch_dtype=torch.float16, variant="fp16", token=os.environ.get("HUGGINGFACE_HUB_TOKEN")
-        ).to(device)
-
-        #self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
-          #"runwayml/stable-diffusion-inpainting",
-          #torch_dtype=torch.float16,
-          #token=os.environ.get("HUGGINGFACE_HUB_TOKEN"),
-        #).to(device)
-
-        self.generator = torch.Generator(device=device).manual_seed(0)
-
-        print("Modelo Stable Diffusion XL 1.0 descargado ✅")
-        #print("Modelo Stable Diffusion 1.5 descargado ✅")
+        self.pipe = FluxFillPipeline.from_pretrained("black-forest-labs/FLUX.1-Fill-dev", torch_dtype=torch.bfloat16, token=os.environ.get("HUGGINGFACE_HUB_TOKEN")).to(device)
+        print("Modelo Flux Impainting descargado ✅")
 
     def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int):
         # Carga las imágenes originales
         original_image = load_image(image_path)
         original_mask = load_image(mask_path)
-
-        #Mask Blur
-        #original_mask = self.pipe.mask_processor.blur(original_mask, blur_factor=33)
 
         # Guarda las dimensiones originales
         orig_width, orig_height = original_image.size
@@ -59,13 +43,14 @@ class SDImpainting:
         # Ejecuta el pipeline de inpainting en el canvas
         result_canvas = self.pipe(
             prompt=prompt,
-            negative_prompt=negative_prompt,
             image=canvas_image,
             mask_image=canvas_mask,
+            height=MODEL_IMG_DIM,
+            width=MODEL_IMG_DIM,
             guidance_scale=guidance,
-            strength=strength,
-            generator=self.generator,
-            num_inference_steps=steps
+            num_inference_steps=steps,
+            max_sequence_length=512,
+            generator=torch.Generator("cpu").manual_seed(0)
         ).images[0]
 
         # Recorta la parte central que contiene la imagen original redimensionada

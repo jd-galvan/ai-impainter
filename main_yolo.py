@@ -9,6 +9,7 @@ from PIL import Image
 import numpy as np
 from libs.sam2.model import SAM2
 from libs.stable_diffusion.impaint.model import SDImpainting
+#from libs.flux.model import FluxImpainting
 from libs.blip.model import BLIP
 from libs.yolov8.model import YOLOV8
 from utils import (
@@ -35,6 +36,7 @@ print(f"DEVICE {DEVICE}")
 #captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
+#impainting_model = FluxImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
 
 # Lista Yolos entrenado
