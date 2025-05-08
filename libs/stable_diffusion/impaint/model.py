@@ -29,7 +29,7 @@ class SDImpainting:
 
         self.face_detector = LangSAMFaceExtractor(device=device)
 
-    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int, padding_mask_crop: int, keep_faces:bool):
+    def impaint(self, image_path: str, mask_path: str, prompt: str, negative_prompt: str, strength: float, guidance: float, steps: int, padding_mask_crop: int, keep_faces:bool, see_face_masks: bool):
         # Carga las imágenes originales
         original_image = load_image(image_path)
         original_mask = load_image(mask_path)
@@ -92,7 +92,22 @@ class SDImpainting:
             (orig_width, orig_height), Image.LANCZOS)
 
 
-        if keep_faces:
+        if see_face_masks:
+            # Asegúrate de que result_crop esté en modo RGBA
+            result_crop = result_crop.convert("RGBA")
+
+            # Convertimos face_mask a imagen PIL en modo 'L'
+            face_mask_img = Image.fromarray(face_mask.astype(np.uint8), mode='L')
+
+            # Invertimos la máscara si es necesario (según cómo sea tu detector)
+            face_mask_img = ImageOps.autocontrast(face_mask_img)  # Asegura que la máscara tenga buen rango
+
+            # Creamos una imagen blanca del mismo tamaño
+            white_image = Image.new("RGBA", result_crop.size, (255, 255, 255, 255))
+
+            # Componemos: donde la máscara es blanca, se usa white_image; en el resto, se usa result_crop
+            result_crop = Image.composite(white_image, result_crop, face_mask_img)
+        elif keep_faces:
             # Asegúrate de que ambas imágenes estén en modo RGBA
             result_crop = result_crop.convert("RGBA")
             original_image_rgba = original_image.convert("RGBA")

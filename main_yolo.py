@@ -126,11 +126,15 @@ with gr.Blocks() as demo:
 
         with gr.Row():
             with gr.Column(scale=1):
-                use_padding = gr.Checkbox(label="Usar Mask Padding", value=False, interactive=True)
+                use_padding = gr.Checkbox(label="Use Mask Padding", value=False, interactive=True)
             with gr.Column(scale=4):
                 mask_padding_crop = gr.Slider(minimum=0.0, maximum=100.0, value=32.0, label="Mask Padding", interactive=False)
 
-        keep_faces = gr.Checkbox(label="Preserve Faces", value=True, interactive=True)
+        with gr.Row():
+            with gr.Column(scale=1):
+                keep_faces = gr.Checkbox(label="Preserve Faces", value=True, interactive=True)
+            with gr.Column(scale=1):
+                see_face_masks = gr.Checkbox(label="See Face Mask", value=False, interactive=True)
 
     with gr.Row():
         negative_prompt = gr.Textbox(
@@ -206,7 +210,7 @@ with gr.Blocks() as demo:
         return None, None, None
 
     # **Procesar la imagen con la máscara y el texto de entrada**
-    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt, use_padding, padding_mask_crop, keep_faces):
+    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt, use_padding, padding_mask_crop, keep_faces, see_face_masks):
         try:
             print("SD XL Impainting started 🎨")
             padding_mask_crop = padding_mask_crop if use_padding else None
@@ -219,7 +223,8 @@ with gr.Blocks() as demo:
                 steps=steps, 
                 negative_prompt=negative_prompt, 
                 padding_mask_crop=padding_mask_crop,
-                keep_faces=keep_faces
+                keep_faces=keep_faces,
+                see_face_masks=see_face_masks
             )
             print("SD XL Impainting process finished")
 
@@ -244,7 +249,7 @@ with gr.Blocks() as demo:
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop, keep_faces], outputs=[final_image, impainted_img, error_message_impaint])
+                      img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop, keep_faces, see_face_masks], outputs=[final_image, impainted_img, error_message_impaint])
     use_padding.change(fn=toggle_slider, inputs=use_padding, outputs=mask_padding_crop)
 
 
