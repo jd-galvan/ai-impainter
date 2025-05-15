@@ -9,7 +9,7 @@ from PIL import Image
 import numpy as np
 from libs.sam2.model import SAM2
 from libs.stable_diffusion.impaint.model import SDImpainting
-#from libs.flux.model import FluxImpainting
+# from libs.flux.model import FluxImpainting
 from libs.blip.model import BLIP
 from libs.yolov8.model import YOLOV8
 from utils import (
@@ -33,13 +33,15 @@ DEVICE = os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
-#captioning_model = BLIP(DEVICE)
+# captioning_model = BLIP(DEVICE)
 segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
-#impainting_model = FluxImpainting(DEVICE)
+# impainting_model = FluxImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
 
 # Lista Yolos entrenado
+
+
 def list_best_pt():
     # Buscar todos los archivos best.pt dentro de cualquier carpeta dentro de detect
     paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
@@ -60,11 +62,14 @@ def list_best_pt():
     print(f"Modelos YOLO encontrados: {len(paths)}")
 
     if paths:
-        yolo_model.set_model(paths[0])  # Cargar el más "nuevo" según el criterio de orden
+        # Cargar el más "nuevo" según el criterio de orden
+        yolo_model.set_model(paths[0])
 
     return paths
 
 # Setea yolo
+
+
 def upload_yolo_model(path):
     print(f"Se cambia a modelo {path}")
     yolo_model.set_model(path)
@@ -74,12 +79,13 @@ def upload_yolo_model(path):
 
 def on_image_load(image_path):
     try:
-        #print("BLIP captioning started 👀")
-        #caption = captioning_model.generate_caption(
-           # image_path)  # Generar el caption usando el path
-        caption=""
-        #print("BLIP captioning finished")
-        return image_path, None  # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
+        # print("BLIP captioning started 👀")
+        # caption = captioning_model.generate_caption(
+        # image_path)  # Generar el caption usando el path
+        caption = ""
+        # print("BLIP captioning finished")
+        # Retornar el caption para que se muestre en el campo de texto y la ruta del archivo original
+        return image_path, None
     except Exception as e:
         print(f"Error en la generación del caption: {e}")
         return "Error en la generación del caption"
@@ -95,10 +101,12 @@ with gr.Blocks() as demo:
     with gr.Row():
         img = gr.Image(label="Input Image", type="filepath")
         img_yolo = gr.Image(label="Yolo Image", type="pil")
-        processed_img = gr.Image(label="Processed Mask", type="filepath", interactive=False)
+        processed_img = gr.Image(
+            label="Processed Mask", type="filepath", interactive=False)
 
     with gr.Row(equal_height=True):
-        yolo_model_path = gr.Dropdown(choices=list_best_pt(), label="Modelos disponibles", scale=4)
+        yolo_model_path = gr.Dropdown(
+            choices=list_best_pt(), label="Modelos disponibles", scale=4)
         yolo_confidence = gr.Slider(
             minimum=0,
             maximum=1,
@@ -122,24 +130,29 @@ with gr.Blocks() as demo:
                              value=0.99, label="Strength", interactive=True)
         guidance = gr.Slider(minimum=0.0, maximum=50.0,
                              value=7.0, label="Guidance Scale", interactive=True)
-        steps = gr.Slider(minimum=0.0, maximum=100.0, value=20.0, step=1.0, label="Steps", interactive=True)
+        steps = gr.Slider(minimum=0.0, maximum=100.0, value=20.0,
+                          step=1.0, label="Steps", interactive=True)
 
         with gr.Row():
             with gr.Column(scale=1):
-                use_padding = gr.Checkbox(label="Use Mask Padding", value=False, interactive=True)
+                use_padding = gr.Checkbox(
+                    label="Use Mask Padding", value=False, interactive=True)
             with gr.Column(scale=4):
-                mask_padding_crop = gr.Slider(minimum=0.0, maximum=100.0, value=32.0, label="Mask Padding", interactive=False)
+                mask_padding_crop = gr.Slider(
+                    minimum=0.0, maximum=100.0, value=32.0, label="Mask Padding", interactive=False)
 
         with gr.Row():
             with gr.Column(scale=1):
-                keep_faces = gr.Checkbox(label="Preserve Faces", value=True, interactive=True)
+                keep_faces = gr.Checkbox(
+                    label="Preserve Faces", value=True, interactive=True)
             with gr.Column(scale=1):
-                see_face_masks = gr.Checkbox(label="See Face Mask", value=False, interactive=True)
+                see_face_masks = gr.Checkbox(
+                    label="See Face Mask", value=False, interactive=True)
 
     with gr.Row():
         negative_prompt = gr.Textbox(
-            label="Negative prompt", 
-            placeholder="Write negative prompt...", 
+            label="Negative prompt",
+            placeholder="Write negative prompt...",
             value="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text")
 
     error_message_impaint = gr.Markdown()
@@ -153,14 +166,18 @@ with gr.Blocks() as demo:
     gr.Markdown("## Resultados")
 
     with gr.Row():
-        original_img = gr.Image(label="Original Image", type="filepath", interactive=False)
-        impainted_img = gr.Image(label="Impainted Image", type="filepath", interactive=False)
+        original_img = gr.Image(label="Original Image",
+                                type="filepath", interactive=False)
+        impainted_img = gr.Image(
+            label="Impainted Image", type="filepath", interactive=False)
 
     def generate_mask_with_yolo(image_path: str, confidence):
         try:
             print("YOLO detection started 🔍")
-            yolo_image, boxes = yolo_model.get_bounding_box(confidence, image_path)
-            print(f"YOLO detection has finished succesfully. {len(boxes)} boxes")
+            yolo_image, boxes = yolo_model.get_bounding_box(
+                confidence, image_path)
+            print(
+                f"YOLO detection has finished succesfully. {len(boxes)} boxes")
 
             image = cv2.imread(image_path)
             if image is None:
@@ -171,39 +188,40 @@ with gr.Blocks() as demo:
 
             binary_mask = None
             # Generación de la máscara
-            if (len(boxes)>0):
-              print(f"SAM detection for {len(boxes)} box started 🔬")
-              masks = segmentation_model.get_mask_by_bounding_boxes(boxes=boxes, image=image)
-              print(f"SAM detection has finished successfully")
+            if (len(boxes) > 0):
+                print(f"SAM detection for {len(boxes)} box started 🔬")
+                masks = segmentation_model.get_mask_by_bounding_boxes(
+                    boxes=boxes, image=image)
+                print(f"SAM detection has finished successfully")
 
-              # Mezclar multiples mascaras de SAM
-              numpy_masks = [mask.cpu().numpy() for mask in masks]
-              combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
-              for m in numpy_masks:
-                combined_mask = np.logical_or(combined_mask, m)
+                # Mezclar multiples mascaras de SAM
+                numpy_masks = [mask.cpu().numpy() for mask in masks]
+                combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
+                for m in numpy_masks:
+                    combined_mask = np.logical_or(combined_mask, m)
 
-              # Generar mascara binaria
-              binary_mask=generate_binary_mask(combined_mask)
-              print("Refining generated mask with OpenCV 🖌") 
-              refined_binary_mask = delete_irrelevant_detected_pixels(
-                  binary_mask)
-              without_irrelevant_pixels_mask = fill_little_spaces(
-                  refined_binary_mask)
-              dilated_mask = soften_contours(without_irrelevant_pixels_mask)
-              blurred_mask = dilated_mask
-              print("Image was refined successfully!")
+                # Generar mascara binaria
+                binary_mask = generate_binary_mask(combined_mask)
+                print("Refining generated mask with OpenCV 🖌")
+                refined_binary_mask = delete_irrelevant_detected_pixels(
+                    binary_mask)
+                without_irrelevant_pixels_mask = fill_little_spaces(
+                    refined_binary_mask)
+                dilated_mask = soften_contours(without_irrelevant_pixels_mask)
+                blurred_mask = dilated_mask
+                print("Image was refined successfully!")
 
-              # Guardar máscara procesada
-              processed_mask = Image.fromarray(blurred_mask, mode='L')
-              processed_mask.save(RUTA_MASCARA)
+                # Guardar máscara procesada
+                processed_mask = Image.fromarray(blurred_mask, mode='L')
+                processed_mask.save(RUTA_MASCARA)
 
-              return yolo_image, RUTA_MASCARA, ""
+                return yolo_image, RUTA_MASCARA, ""
             else:
-              return yolo_image, None, ""
+                return yolo_image, None, ""
         except Exception as e:
             print(f"Error: {e}")
             return None, None, f"<span style='color:red;'>❌ Error: {str(e)}</span>"
-    
+
     # **Reiniciar la máscara al cambiar de imagen**
     def reset_mask(image_path):
         delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
@@ -215,13 +233,13 @@ with gr.Blocks() as demo:
             print("SD XL Impainting started 🎨")
             padding_mask_crop = padding_mask_crop if use_padding else None
             new_image = impainting_model.impaint(
-                image_path=original_image_path, 
-                mask_path=mask_path, 
-                prompt=text, 
-                strength=strength, 
-                guidance=guidance, 
-                steps=steps, 
-                negative_prompt=negative_prompt, 
+                image_path=original_image_path,
+                mask_path=mask_path,
+                prompt=text,
+                strength=strength,
+                guidance=guidance,
+                steps=steps,
+                negative_prompt=negative_prompt,
                 padding_mask_crop=padding_mask_crop,
                 keep_faces=keep_faces,
                 see_face_masks=see_face_masks
@@ -232,8 +250,8 @@ with gr.Blocks() as demo:
             return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL, ""
         except Exception as e:
             print(f"Error: {e}")
-            return None, None, f"<span style='color:red;'>❌ Error: {str(e)}</span>" 
-        
+            return None, None, f"<span style='color:red;'>❌ Error: {str(e)}</span>"
+
     def on_clear_processed_mask():
         delete_files([RUTA_MASCARA])
         return None
@@ -241,20 +259,25 @@ with gr.Blocks() as demo:
     def toggle_slider(use_padding):
         return gr.update(interactive=use_padding)
 
-
     # **Asignar eventos a la interfaz**
-    img.change(on_image_load, inputs=[img], outputs=[original_img, impainted_img])
-    yolo_model_path.change(fn=upload_yolo_model, inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[img_yolo, processed_img, error_message_detection])
+    img.change(on_image_load, inputs=[img], outputs=[
+               original_img, impainted_img])
+    yolo_model_path.change(fn=upload_yolo_model,
+                           inputs=yolo_model_path, outputs=None)
+    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[
+                        img_yolo, processed_img, error_message_detection])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
-    img.change(reset_mask, inputs=[img], outputs=[img_yolo, processed_img, final_image])
+    img.change(reset_mask, inputs=[img], outputs=[
+               img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
                       img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop, keep_faces, see_face_masks], outputs=[final_image, impainted_img, error_message_impaint])
-    use_padding.change(fn=toggle_slider, inputs=use_padding, outputs=mask_padding_crop)
+    use_padding.change(fn=toggle_slider, inputs=use_padding,
+                       outputs=mask_padding_crop)
 
 
 # **Limpiar archivos previos antes de lanzar la aplicación**
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
 
 # **Lanzar la interfaz**
-demo.launch(debug=True, auth=(os.environ.get("USER"), os.environ.get("PASSWORD")))
+demo.launch(debug=True, auth=(os.environ.get(
+    "APP_USER"), os.environ.get("APP_PASSWORD")))
