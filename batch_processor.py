@@ -63,7 +63,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 1. Preparar datos iniciales de la tabla con estado 'Pendiente'
         for ruta in rutas_archivos:
-            shared_processing_data.append([ruta, "✨ Pendiente"])
+            shared_processing_data.append([ruta, "✨ Pendiente", ""])
 
         # Generar estado inicial: tabla y mensaje
         yield shared_processing_data, "✅ Proceso de restauración iniciado. Procesando archivos..."
@@ -71,6 +71,7 @@ def handle_processing_click(lista_elementos_seleccionados):
         # 2. Procesar cada archivo
         for i, ruta_original in enumerate(rutas_archivos):
             shared_processing_data[i][1] = "⏳ Procesando..."
+            begin = time.time() 
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
             yield shared_processing_data, f"⏳ Procesando archivo {i+1}/{len(rutas_archivos)}..."
 
@@ -83,11 +84,15 @@ def handle_processing_click(lista_elementos_seleccionados):
                 shutil.copy2(ruta_original, nueva_ruta)
                 time.sleep(5)
 
+                end = time.time()
+                duration = round(end-begin, 3)
                 shared_processing_data[i][1] = "✅ Restaurado"
+                shared_processing_data[i][2] = f"{duration}"
             except Exception as e:
                 # Actualizar estado en caso de error
                 if len(shared_processing_data[i]) > 1:
                     shared_processing_data[i][1] = f"❌ Error: {e}"
+                    shared_processing_data[i][2] = "-"
 
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
             yield shared_processing_data, f"✅ Archivo {i+1}/{len(rutas_archivos)} procesado."
@@ -136,7 +141,7 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     # Se actualizará al cargar la página y al presionar el botón.
     output_tabla_procesamiento = gr.Dataframe(
         label="📊 Estado del Procesamiento de Archivos",  # Etiqueta con emoji
-        headers=["Ruta del Archivo", "Estado"],  # Cabeceras de la tabla
+        headers=["Ruta del Archivo", "Estado", "Tiempo (s)"],  # Cabeceras de la tabla
         interactive=False,  # La tabla no es editable por el usuario
     )
 
