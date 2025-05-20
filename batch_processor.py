@@ -1,11 +1,36 @@
-import gradio as gr
 import os
+import glob
 import shutil
 import time
 import threading
+import cv2
+import gradio as gr
+import numpy as np
+from PIL import Image
 from dotenv import load_dotenv
+from libs.sam2.model import SAM2
+from libs.stable_diffusion.impaint.model import SDImpainting
+from libs.yolov8.model import YOLOV8
+from utils import (
+    generate_binary_mask,
+    delete_irrelevant_detected_pixels,
+    fill_little_spaces,
+    soften_contours
+)
 
 load_dotenv()
+
+# Configuración del dispositivo para modelos
+DEVICE = os.environ.get("CUDA_DEVICE")
+print(f"DEVICE {DEVICE}")
+
+# Cargar modelos
+segmentation_model = SAM2(DEVICE)
+impainting_model = SDImpainting(DEVICE)
+yolo_model = YOLOV8(device=DEVICE)
+paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
+yolo_model.set_model(paths[0])
+
 
 # ====== Estado Global Compartido y Mecanismo de Bloqueo ======
 shared_processing_data = []
@@ -71,18 +96,76 @@ def handle_processing_click(lista_elementos_seleccionados):
         # 2. Procesar cada archivo
         for i, ruta_original in enumerate(rutas_archivos):
             shared_processing_data[i][1] = "⏳ Procesando..."
-            begin = time.time() 
+            begin = time.time()
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
             yield shared_processing_data, f"⏳ Procesando archivo {i+1}/{len(rutas_archivos)}..."
 
             try:
+                print("YOLO detection started 🔍")
+                yolo_image, boxes = yolo_model.get_bounding_box(
+                    0.1, ruta_original)
+                print(
+                    f"YOLO detection has finished succesfully. {len(boxes)} boxes")
+
+                image = cv2.imread(ruta_original)
+                if image is None:
+                    raise ValueError(
+                        "No se pudo cargar la imagen. Verifica la ruta.")
+
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+                binary_mask = None
+                # Generación de la máscara
+                print(f"SAM detection for {len(boxes)} box started 🔬")
+                masks = segmentation_model.get_mask_by_bounding_boxes(
+                    boxes=boxes, image=image)
+                print(f"SAM detection has finished successfully")
+
+                # Mezclar multiples mascaras de SAM
+                numpy_masks = [mask.cpu().numpy() for mask in masks]
+                combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
+                for m in numpy_masks:
+                    combined_mask = np.logical_or(combined_mask, m)
+
+                # Generar mascara binaria
+                binary_mask = generate_binary_mask(combined_mask)
+                print("Refining generated mask with OpenCV 🖌")
+                refined_binary_mask = delete_irrelevant_detected_pixels(
+                    binary_mask)
+                without_irrelevant_pixels_mask = fill_little_spaces(
+                    refined_binary_mask)
+                dilated_mask = soften_contours(
+                    without_irrelevant_pixels_mask)
+                blurred_mask = dilated_mask
+                print("Image was refined successfully!")
+
+                # Guardar máscara procesada
+                processed_mask = Image.fromarray(blurred_mask, mode='L')
+
                 directorio, nombre_completo = os.path.split(ruta_original)
                 nombre, extension = os.path.splitext(nombre_completo)
-                nueva_ruta = os.path.join(
-                    directorio, f"{nombre}_AI{extension}")
+                ruta_mascara = os.path.join(
+                    directorio, f"{nombre}_MASK{extension}")
+                processed_mask.save(ruta_mascara)
 
-                shutil.copy2(ruta_original, nueva_ruta)
-                time.sleep(5)
+                print("SD XL Impainting started 🎨")
+                new_image = impainting_model.impaint(
+                    image_path=ruta_original,
+                    mask_path=ruta_mascara,
+                    prompt="photo restoration, realistic, same style",
+                    strength=0.99,
+                    guidance=7,
+                    padding_mask_crop=None,
+                    steps=20,
+                    negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                    keep_faces=True,
+                    see_face_masks=False
+                )
+                print("SD XL Impainting process finished")
+
+                ruta_restauracion = os.path.join(
+                    directorio, f"{nombre}_RESTORED{extension}")
+                new_image.save(ruta_restauracion)
 
                 end = time.time()
                 duration = round(end-begin, 3)
@@ -141,7 +224,8 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     # Se actualizará al cargar la página y al presionar el botón.
     output_tabla_procesamiento = gr.Dataframe(
         label="📊 Estado del Procesamiento de Archivos",  # Etiqueta con emoji
-        headers=["Ruta del Archivo", "Estado", "Tiempo (s)"],  # Cabeceras de la tabla
+        headers=["Ruta del Archivo", "Estado",
+                 "Tiempo (s)"],  # Cabeceras de la tabla
         interactive=False,  # La tabla no es editable por el usuario
     )
 
