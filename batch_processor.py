@@ -129,6 +129,14 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Generar mascara binaria
                 binary_mask = generate_binary_mask(combined_mask)
+
+                # Guardar mascara original
+                directorio, nombre_completo = os.path.split(ruta_original)
+                nombre, extension = os.path.splitext(nombre_completo)
+                ruta_mascara_original = os.path.join(
+                    directorio, f"{nombre}_MASK_ORIGINAL.png")
+                processed_mask.save(ruta_mascara_original)
+
                 print("Refining generated mask with OpenCV 🖌")
                 refined_binary_mask = delete_irrelevant_detected_pixels(
                     binary_mask)
@@ -139,19 +147,16 @@ def handle_processing_click(lista_elementos_seleccionados):
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
 
-                # Guardar máscara procesada
+                # Guardar máscara refinada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
-
-                directorio, nombre_completo = os.path.split(ruta_original)
-                nombre, extension = os.path.splitext(nombre_completo)
-                ruta_mascara = os.path.join(
-                    directorio, f"{nombre}_MASK.png")
-                processed_mask.save(ruta_mascara)
+                ruta_mascara_final = os.path.join(
+                    directorio, f"{nombre}_MASK_REFINED.png")
+                processed_mask.save(ruta_mascara_final)
 
                 print("SD XL Impainting started 🎨")
                 new_image = impainting_model.impaint(
                     image_path=ruta_original,
-                    mask_path=ruta_mascara,
+                    mask_path=ruta_mascara_final,
                     prompt="photo restoration, realistic, same style",
                     strength=0.99,
                     guidance=7,
