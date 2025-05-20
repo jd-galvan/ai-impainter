@@ -1,8 +1,12 @@
-from diffusers import AutoPipelineForInpainting
+import sys
 import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+from diffusers import AutoPipelineForInpainting
 #from diffusers import StableDiffusionInpaintPipeline
 from diffusers.utils import load_image
-from ...langsam.model import LangSAMFaceExtractor
+from libs.langsam.model import LangSAMFaceExtractor
+from utils import fill_little_spaces
 from PIL import Image, ImageFilter, ImageOps
 import torch
 import numpy as np
@@ -37,12 +41,16 @@ class SDImpainting:
         # Detectando rostros
         print("Deteccion de rostros 🎭")
         face_mask = self.face_detector(image_path, return_results = "mask", mask_multiplier = 255)
-        #print("FACE MASK")
-        #print(type(face_mask))
-        #print(len(face_mask))
+        print("FACE MASK")
+        print(type(face_mask))
+        print(len(face_mask))
+        print(face_mask)
+        print("VAL UNICOS")
+        print(np.unique(face_mask))
         print("Deteccion de rostros exitosa") 
 
         print(original_image.size)
+        #face_mask = fill_little_spaces(face_mask, 65)
         # Guarda las dimensiones originales
         orig_width, orig_height = original_image.size
 
