@@ -41,16 +41,8 @@ class SDImpainting:
         # Detectando rostros
         print("Deteccion de rostros 🎭")
         face_mask = self.face_detector(image_path, return_results = "mask", mask_multiplier = 255)
-        print("FACE MASK")
-        print(type(face_mask))
-        print(len(face_mask))
-        print(face_mask)
-        print("VAL UNICOS")
-        print(np.unique(face_mask))
+        face_mask = fill_little_spaces(face_mask, 65)
         print("Deteccion de rostros exitosa") 
-
-        print(original_image.size)
-        #face_mask = fill_little_spaces(face_mask, 65)
         # Guarda las dimensiones originales
         orig_width, orig_height = original_image.size
 

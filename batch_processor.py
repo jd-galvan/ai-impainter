@@ -145,7 +145,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 directorio, nombre_completo = os.path.split(ruta_original)
                 nombre, extension = os.path.splitext(nombre_completo)
                 ruta_mascara = os.path.join(
-                    directorio, f"{nombre}_MASK{extension}")
+                    directorio, f"{nombre}_MASK.png")
                 processed_mask.save(ruta_mascara)
 
                 print("SD XL Impainting started 🎨")
@@ -164,7 +164,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 print("SD XL Impainting process finished")
 
                 ruta_restauracion = os.path.join(
-                    directorio, f"{nombre}_RESTORED{extension}")
+                    directorio, f"{nombre}_RESTORED.png")
                 new_image.save(ruta_restauracion)
 
                 end = time.time()
