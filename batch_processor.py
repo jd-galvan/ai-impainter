@@ -135,7 +135,8 @@ def handle_processing_click(lista_elementos_seleccionados):
                 nombre, extension = os.path.splitext(nombre_completo)
                 ruta_mascara_original = os.path.join(
                     directorio, f"{nombre}_MASK_ORIGINAL.png")
-                processed_mask.save(ruta_mascara_original)
+                binary_mask_image = Image.fromarray(binary_mask)
+                binary_mask_image.save(ruta_mascara_original)
 
                 print("Refining generated mask with OpenCV 🖌")
                 refined_binary_mask = delete_irrelevant_detected_pixels(
