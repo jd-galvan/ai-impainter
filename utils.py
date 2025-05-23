@@ -15,6 +15,10 @@ def generate_binary_mask(mask):
 
 
 def delete_irrelevant_detected_pixels(binary_mask, min_area=1000):
+    # Convertir a escala de grises si tiene más de un canal
+    if len(binary_mask.shape) == 3:
+        binary_mask = cv2.cvtColor(binary_mask, cv2.COLOR_BGR2GRAY)
+
     # Aplicar etiquetado de componentes conectados
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
         binary_mask, connectivity=8)

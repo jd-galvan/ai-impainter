@@ -188,5 +188,6 @@ processed_mask.png
 runs/
 dataset/
 *.pt
+*.pth
 .gradio/
 nohup.out

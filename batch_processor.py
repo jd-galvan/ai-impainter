@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
 from libs.sam2.model import SAM2
+from libs.unet.model import UNetInference
 from libs.stable_diffusion.impaint.model import SDImpainting
 from libs.yolov8.model import YOLOV8
 from utils import (
@@ -25,7 +26,8 @@ DEVICE = os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
-segmentation_model = SAM2(DEVICE)
+sam_segmentation_model = SAM2(DEVICE)
+unet_segmentation_model = UNetInference(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
 paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
@@ -101,11 +103,13 @@ def handle_processing_click(lista_elementos_seleccionados):
             yield shared_processing_data, f"⏳ Procesando archivo {i+1}/{len(rutas_archivos)}..."
 
             try:
+                """
                 print("YOLO detection started 🔍")
                 yolo_image, boxes = yolo_model.get_bounding_box(
                     0.1, ruta_original)
                 print(
                     f"YOLO detection has finished succesfully. {len(boxes)} boxes")
+                """
 
                 image = cv2.imread(ruta_original)
                 if image is None:
@@ -115,9 +119,10 @@ def handle_processing_click(lista_elementos_seleccionados):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 binary_mask = None
+                """
                 # Generación de la máscara
                 print(f"SAM detection for {len(boxes)} box started 🔬")
-                masks = segmentation_model.get_mask_by_bounding_boxes(
+                masks = sam_segmentation_model.get_mask_by_bounding_boxes(
                     boxes=boxes, image=image)
                 print(f"SAM detection has finished successfully")
 
@@ -129,22 +134,28 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Generar mascara binaria
                 binary_mask = generate_binary_mask(combined_mask)
+                """
+                print("UNet segmentation started 🔬")
+                binary_mask = unet_segmentation_model.get_mask(image=image)
+                print(f"UNet detection has finished successfully")
 
                 # Guardar mascara original
                 directorio, nombre_completo = os.path.split(ruta_original)
                 nombre, extension = os.path.splitext(nombre_completo)
                 ruta_mascara_original = os.path.join(
                     directorio, f"{nombre}_MASK_ORIGINAL.png")
+
                 binary_mask_image = Image.fromarray(binary_mask)
                 binary_mask_image.save(ruta_mascara_original)
 
                 print("Refining generated mask with OpenCV 🖌")
                 refined_binary_mask = delete_irrelevant_detected_pixels(
                     binary_mask)
+
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
                 dilated_mask = soften_contours(
-                    without_irrelevant_pixels_mask)
+                    without_irrelevant_pixels_mask, 0)
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
 
