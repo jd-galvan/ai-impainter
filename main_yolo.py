@@ -102,7 +102,7 @@ with gr.Blocks() as demo:
         img = gr.Image(label="Input Image", type="filepath")
         img_yolo = gr.Image(label="Yolo Image", type="pil")
         processed_img = gr.Image(
-            label="Processed Mask", type="filepath", interactive=False)
+            label="Processed Mask", type="filepath", interactive=True)
 
     with gr.Row(equal_height=True):
         yolo_model_path = gr.Dropdown(
@@ -116,6 +116,7 @@ with gr.Blocks() as demo:
             scale=1,
             interactive=True
         )
+        mask_dilatation=gr.Slider(minimum=0, maximum=100, value=100, step=1, label="Dilatacion Mask", interactive=True)
 
     error_message_detection = gr.Markdown()
     with gr.Row():
@@ -171,7 +172,7 @@ with gr.Blocks() as demo:
         impainted_img = gr.Image(
             label="Impainted Image", type="filepath", interactive=False)
 
-    def generate_mask_with_yolo(image_path: str, confidence):
+    def generate_mask_with_yolo(image_path: str, confidence, mask_dilatation):
         try:
             print("YOLO detection started 🔍")
             yolo_image, boxes = yolo_model.get_bounding_box(
@@ -207,7 +208,7 @@ with gr.Blocks() as demo:
                     binary_mask)
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
-                dilated_mask = soften_contours(without_irrelevant_pixels_mask)
+                dilated_mask = soften_contours(without_irrelevant_pixels_mask, mask_dilatation)
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
 
@@ -264,7 +265,7 @@ with gr.Blocks() as demo:
                original_img, impainted_img])
     yolo_model_path.change(fn=upload_yolo_model,
                            inputs=yolo_model_path, outputs=None)
-    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence], outputs=[
+    detect_button.click(generate_mask_with_yolo, inputs=[img, yolo_confidence, mask_dilatation], outputs=[
                         img_yolo, processed_img, error_message_detection])
     processed_img.clear(on_clear_processed_mask, outputs=[processed_img])
     img.change(reset_mask, inputs=[img], outputs=[
