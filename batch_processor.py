@@ -90,17 +90,18 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 1. Preparar datos iniciales de la tabla con estado 'Pendiente'
         for ruta in rutas_archivos:
-            shared_processing_data.append([ruta, "✨ Pendiente", ""])
+            shared_processing_data.append([ruta, "YOLO+SAM", "✨ Pendiente", ""])
+            shared_processing_data.append([ruta, "UNet", "✨ Pendiente", ""])
 
         # Generar estado inicial: tabla y mensaje
         yield shared_processing_data, "✅ Proceso de restauración iniciado. Procesando archivos..."
 
         # 2. Procesar cada archivo
-        for i, ruta_original in enumerate(rutas_archivos):
-            shared_processing_data[i][1] = "⏳ Procesando..."
+        for fila_idx, (ruta_original, modelo, _, _) in enumerate(shared_processing_data):
+            shared_processing_data[fila_idx][2] = "⏳ Procesando..."
             begin = time.time()
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
-            yield shared_processing_data, f"⏳ Procesando archivo {i+1}/{len(rutas_archivos)}..."
+            yield shared_processing_data, f"⏳ Procesando {os.path.basename(ruta_original)} con {modelo}..."
 
             try:
                 """
@@ -119,31 +120,40 @@ def handle_processing_click(lista_elementos_seleccionados):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 binary_mask = None
-                """
-                # Generación de la máscara
-                print(f"SAM detection for {len(boxes)} box started 🔬")
-                masks = sam_segmentation_model.get_mask_by_bounding_boxes(
-                    boxes=boxes, image=image)
-                print(f"SAM detection has finished successfully")
 
-                # Mezclar multiples mascaras de SAM
-                numpy_masks = [mask.cpu().numpy() for mask in masks]
-                combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
-                for m in numpy_masks:
-                    combined_mask = np.logical_or(combined_mask, m)
+                kernel_size_contours = 100
+                if modelo == "YOLO+SAM":
+                    print("YOLO detection started 🔍")
+                    yolo_image, boxes = yolo_model.get_bounding_box(
+                        0.1, ruta_original)
+                    print(
+                        f"YOLO detection has finished succesfully. {len(boxes)} boxes")
 
-                # Generar mascara binaria
-                binary_mask = generate_binary_mask(combined_mask)
-                """
-                print("UNet segmentation started 🔬")
-                binary_mask = unet_segmentation_model.get_mask(image=image)
-                print(f"UNet detection has finished successfully")
+                    # Generación de la máscara
+                    print(f"SAM detection for {len(boxes)} box started 🔬")
+                    masks = sam_segmentation_model.get_mask_by_bounding_boxes(
+                        boxes=boxes, image=image)
+                    print(f"SAM detection has finished successfully")
+
+                    # Mezclar multiples mascaras de SAM
+                    numpy_masks = [mask.cpu().numpy() for mask in masks]
+                    combined_mask = np.zeros_like(numpy_masks[0], dtype=bool)
+                    for m in numpy_masks:
+                        combined_mask = np.logical_or(combined_mask, m)
+
+                    # Generar mascara binaria
+                    binary_mask = generate_binary_mask(combined_mask)
+                elif modelo == "UNet":
+                    kernel_size_contours=0
+                    print("UNet segmentation started 🔬")
+                    binary_mask = unet_segmentation_model.get_mask(image=image)
+                    print(f"UNet detection has finished successfully")
 
                 # Guardar mascara original
                 directorio, nombre_completo = os.path.split(ruta_original)
                 nombre, extension = os.path.splitext(nombre_completo)
                 ruta_mascara_original = os.path.join(
-                    directorio, f"{nombre}_MASK_ORIGINAL.png")
+                    directorio, f"{nombre}_MASK_ORIGINAL_{modelo}.png")
 
                 binary_mask_image = Image.fromarray(binary_mask)
                 binary_mask_image.save(ruta_mascara_original)
@@ -155,14 +165,14 @@ def handle_processing_click(lista_elementos_seleccionados):
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
                 dilated_mask = soften_contours(
-                    without_irrelevant_pixels_mask, 0)
+                    without_irrelevant_pixels_mask, kernel_size_contours)
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
 
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
                 ruta_mascara_final = os.path.join(
-                    directorio, f"{nombre}_MASK_REFINED.png")
+                    directorio, f"{nombre}_MASK_REFINED_{modelo}.png")
                 processed_mask.save(ruta_mascara_final)
 
                 print("SD XL Impainting started 🎨")
@@ -181,21 +191,21 @@ def handle_processing_click(lista_elementos_seleccionados):
                 print("SD XL Impainting process finished")
 
                 ruta_restauracion = os.path.join(
-                    directorio, f"{nombre}_RESTORED.png")
+                    directorio, f"{nombre}_RESTORED_{modelo}.png")
                 new_image.save(ruta_restauracion)
 
                 end = time.time()
                 duration = round(end-begin, 3)
-                shared_processing_data[i][1] = "✅ Restaurado"
-                shared_processing_data[i][2] = f"{duration}"
+                shared_processing_data[fila_idx][2] = "✅ Restaurado"
+                shared_processing_data[fila_idx][3] = f"{duration}"
             except Exception as e:
                 # Actualizar estado en caso de error
-                if len(shared_processing_data[i]) > 1:
-                    shared_processing_data[i][1] = f"❌ Error: {e}"
-                    shared_processing_data[i][2] = "-"
+                if len(shared_processing_data[fila_idx]) > 1:
+                    shared_processing_data[fila_idx][2] = f"❌ Error: {e}"
+                    shared_processing_data[i][3] = "-"
 
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
-            yield shared_processing_data, f"✅ Archivo {i+1}/{len(rutas_archivos)} procesado."
+            yield shared_processing_data, f"✅ Archivo {os.path.basename(ruta_original)} con {modelo}..."
 
         # Después de que el bucle termine
         is_processing = False  # Proceso terminado
@@ -241,7 +251,7 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     # Se actualizará al cargar la página y al presionar el botón.
     output_tabla_procesamiento = gr.Dataframe(
         label="📊 Estado del Procesamiento de Archivos",  # Etiqueta con emoji
-        headers=["Ruta del Archivo", "Estado",
+        headers=["Ruta del Archivo", "Modelo Segmentación", "Estado",
                  "Tiempo (s)"],  # Cabeceras de la tabla
         interactive=False,  # La tabla no es editable por el usuario
     )
