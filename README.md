@@ -8,6 +8,8 @@ Hace uso de las siguientes tecnologías:
 
 - 🔍 **YoloV8** para detección automática de regiones con manchas.
 - 🔬 **SAM2** (Segment Anything Model v2) para la segmentación de manchas.
+- 🧠 **UNet** para la segmentación precisa y refinada de regiones afectadas.
+- 👤 **LangSAM** para la detección de rostros.
 - 🎨 **Stable Diffusion Inpainting XL** para la restauración de imágenes.
 - 🏞️  **OpenCV** para el procesamiento de imágenes.
 - 👀 **BLIP** (Bootstrapped Language-Image Pretraining) para mejorar la interpretación de la imagen.
@@ -55,6 +57,8 @@ Este proyecto requiere la configuración de variables de entorno para su correct
    ```env
    CUDA_DEVICE=cuda:0  # Puedes configurar "cuda:0", "cuda:1" o la tarjeta gráfica que desees usar.
    HUGGINGFACE_HUB_TOKEN=tu_token_aquí
+   APP_USER=usuario_que_definas_para_acceder_a_app
+   APP_PASSWORD=password_que_definas_para_acceder_a_app
    ```
 
 ## 🚀 Uso
