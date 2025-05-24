@@ -22,7 +22,7 @@ from utils import (
 load_dotenv()
 
 # Configuración del dispositivo para modelos
-DEVICE = os.environ.get("CUDA_DEVICE")
+DEVICE = "cuda:1" #os.environ.get("CUDA_DEVICE")
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
@@ -104,14 +104,6 @@ def handle_processing_click(lista_elementos_seleccionados):
             yield shared_processing_data, f"⏳ Procesando {os.path.basename(ruta_original)} con {modelo}..."
 
             try:
-                """
-                print("YOLO detection started 🔍")
-                yolo_image, boxes = yolo_model.get_bounding_box(
-                    0.1, ruta_original)
-                print(
-                    f"YOLO detection has finished succesfully. {len(boxes)} boxes")
-                """
-
                 image = cv2.imread(ruta_original)
                 if image is None:
                     raise ValueError(
@@ -193,6 +185,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
                 new_image.save(ruta_restauracion)
+
 
                 end = time.time()
                 duration = round(end-begin, 3)
