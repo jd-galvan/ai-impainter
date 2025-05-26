@@ -8,6 +8,7 @@ from PIL import Image
 class LangSAMFaceExtractor():
   def __init__(self, device: str, model_size:["tiny", "small", "base-plus", "large"] = "tiny"):
     self.sam = LangSAM(model_type=f"sam2-hiera-{model_size}")
+    self.sam.device = device
     self.model_size = model_size
     print("Modelo LangSAM descargado ✅")
 

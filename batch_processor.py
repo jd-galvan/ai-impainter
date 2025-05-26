@@ -136,7 +136,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                     # Generar mascara binaria
                     binary_mask = generate_binary_mask(combined_mask)
                 elif modelo == "UNet":
-                    kernel_size_contours=0
+                    kernel_size_contours=50
                     print("UNet segmentation started 🔬")
                     binary_mask = unet_segmentation_model.get_mask(image=image)
                     print(f"UNet detection has finished successfully")
