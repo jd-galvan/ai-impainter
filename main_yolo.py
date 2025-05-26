@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from PIL import Image
 import numpy as np
 from libs.sam2.model import SAM2
+from libs.langsam.model import LangSAMFaceExtractor
 from libs.stable_diffusion.impaint.model import SDImpainting
 # from libs.flux.model import FluxImpainting
 from libs.blip.model import BLIP
@@ -17,7 +18,6 @@ from utils import (
     delete_irrelevant_detected_pixels,
     fill_little_spaces,
     soften_contours,
-    blur_mask,
     delete_files
 )
 
@@ -38,7 +38,7 @@ segmentation_model = SAM2(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 # impainting_model = FluxImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
-
+face_detector = LangSAMFaceExtractor(device=DEVICE)
 # Lista Yolos entrenado
 
 
@@ -116,7 +116,8 @@ with gr.Blocks() as demo:
             scale=1,
             interactive=True
         )
-        mask_dilatation=gr.Slider(minimum=0, maximum=100, value=100, step=1, label="Dilatacion Mask", interactive=True)
+        mask_dilatation = gr.Slider(
+            minimum=0, maximum=100, value=100, step=1, label="Dilatacion Mask", interactive=True)
 
     error_message_detection = gr.Markdown()
     with gr.Row():
@@ -208,9 +209,24 @@ with gr.Blocks() as demo:
                     binary_mask)
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
-                dilated_mask = soften_contours(without_irrelevant_pixels_mask, mask_dilatation)
+                dilated_mask = soften_contours(
+                    without_irrelevant_pixels_mask, mask_dilatation)
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
+
+                # Detectando rostros
+                print("Deteccion de rostros 🎭")
+                face_mask = face_detector(
+                    image_path, return_results="mask", mask_multiplier=255)
+                face_mask = fill_little_spaces(face_mask, 65)
+                print("Deteccion de rostros exitosa")
+
+                # Preservando mascara de rostro original en mascara final
+                assert binary_mask.shape == face_mask.shape == blurred_mask.shape
+                # Paso 1: Crear una máscara booleana donde face_mask es blanco
+                face_region = face_mask == 255  # o face_mask > 0 si no es estrictamente 255
+                # Paso 2: Reemplazar en blurred_mask esos píxeles con los de binary_mask
+                blurred_mask[face_region] = binary_mask[face_region]
 
                 # Guardar máscara procesada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
