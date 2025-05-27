@@ -67,10 +67,12 @@ def delete_files(file_paths):
 
 def crop_image(image, x1, x2, y1, y2, padding=10):
     # Aplicar padding y asegurarse de que las coordenadas estén dentro del rango
+    """
     y1 = y1 - padding
     x1 = x1 - padding
     y2 = y2 + padding
     x2 = x2 + padding
+    """
 
     # Recortar y convertir a imagen PIL
     cropped = image[x1:x2, y1:y2]
