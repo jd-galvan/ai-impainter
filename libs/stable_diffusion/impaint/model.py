@@ -42,8 +42,6 @@ class SDImpainting:
             guidance: float,
             steps: int,
             padding_mask_crop: int,
-            keep_faces: bool,
-            see_face_masks: bool
     ):
         # Carga las imágenes originales
         original_image = load_image(image_path)

@@ -5,7 +5,7 @@ import re
 import glob
 import gradio as gr
 from dotenv import load_dotenv
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 from libs.sam2.model import SAM2
 from libs.langsam.model import LangSAMFaceExtractor
@@ -217,22 +217,26 @@ with gr.Blocks() as demo:
 
                 # Detectando rostros
                 print("Deteccion de rostros 🎭")
-                boxes = face_detector(
-                    image_path, return_results="box", mask_multiplier=255)
+                face_mask, boxes = face_detector(
+                    image_path, return_results="both", mask_multiplier=255)
+
+                face_mask = Image.fromarray(face_mask)
+                face_mask = fill_little_spaces(face_mask, 65)
+                face_mask.save("face_mask.png")
 
                 for i in range(len(boxes)):
                     print(f"Cara {i}")
-                    face = crop_image(image, int(boxes[i][1]), int(boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
-                    face_mask = crop_image(binary_mask, int(boxes[i][1]), int(boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
-                    
+                    face = crop_image(image, int(boxes[i][1]), int(
+                        boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
+                    face_mask = crop_image(binary_mask, int(boxes[i][1]), int(
+                        boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
+
                     if np.any(face_mask == 255):
                         face = Image.fromarray(face)
                         face.save(f"face_{i}.png")
                         face_mask = Image.fromarray(face_mask)
                         face_mask.save(f"face_mask_{i}.png")
 
-                #face_mask = fill_little_spaces(face_mask, 65)
-                
                 print("Deteccion de rostros exitosa")
 
                 """
@@ -273,11 +277,45 @@ with gr.Blocks() as demo:
                 guidance=guidance,
                 steps=steps,
                 negative_prompt=negative_prompt,
-                padding_mask_crop=padding_mask_crop,
-                keep_faces=keep_faces,
-                see_face_masks=see_face_masks
+                padding_mask_crop=padding_mask_crop
             )
             print("SD XL Impainting process finished")
+
+            if see_face_masks:
+                print("Se veran las mascaras (debug only)")
+                # Asegúrate de que result_crop esté en modo RGBA
+                result_crop = new_image.convert("RGBA")
+
+                # Convertimos face_mask a imagen PIL en modo 'L'
+                face_mask_img = Image.open("face_mask.png").convert('L')
+
+                # Invertimos la máscara si es necesario (según cómo sea tu detector)
+                # Asegura que la máscara tenga buen rango
+                face_mask_img = ImageOps.autocontrast(face_mask_img)
+
+                # Creamos una imagen blanca del mismo tamaño
+                white_image = Image.new(
+                    "RGBA", result_crop.size, (255, 255, 255, 255))
+
+                # Componemos: donde la máscara es blanca, se usa white_image; en el resto, se usa result_crop
+                new_image = Image.composite(
+                    white_image, result_crop, face_mask_img)
+            elif not keep_faces:
+                print("Mejoraremos los rostros")
+            else:
+                print("Se conservaran los rostros tal cual")
+                # Asegúrate de que ambas imágenes estén en modo RGBA
+                result_crop = new_image.convert("RGBA")
+                original_image = Image.open(original_image_path)
+                original_image_rgba = original_image.convert("RGBA")
+
+                # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
+                face_mask_img = Image.open("face_mask.png").convert('L')
+                face_mask_img = ImageOps.autocontrast(face_mask_img)
+
+                # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
+                new_image = Image.composite(
+                    original_image_rgba, result_crop, face_mask_img)
 
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL, ""
