@@ -205,6 +205,8 @@ with gr.Blocks() as demo:
 
                 # Generar mascara binaria
                 binary_mask = generate_binary_mask(combined_mask)
+                binary_mask_image = Image.fromarray(binary_mask)
+                binary_mask_image.save("original_mask.png")
                 print("Refining generated mask with OpenCV 🖌")
                 refined_binary_mask = delete_irrelevant_detected_pixels(
                     binary_mask)
@@ -214,28 +216,6 @@ with gr.Blocks() as demo:
                     without_irrelevant_pixels_mask, mask_dilatation)
                 blurred_mask = dilated_mask
                 print("Image was refined successfully!")
-
-                # Detectando rostros
-                print("Deteccion de rostros 🎭")
-                face_mask, boxes = face_detector(
-                    image_path, return_results="both", mask_multiplier=255)
-
-                face_mask = fill_little_spaces(face_mask, 65)
-                face_mask = Image.fromarray(face_mask)
-                face_mask.save("face_mask.png")
-                for i in range(len(boxes)):
-                    face = crop_image(image, int(boxes[i][1]), int(
-                        boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
-                    face_mask = crop_image(binary_mask, int(boxes[i][1]), int(
-                        boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
-
-                    if np.any(face_mask == 255):
-                        face = Image.fromarray(face)
-                        face.save(f"face_{i}.png")
-                        face_mask = Image.fromarray(face_mask)
-                        face_mask.save(f"face_mask_{i}.png")
-
-                print("Deteccion de rostros exitosa")
 
                 # Guardar máscara procesada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
@@ -270,6 +250,20 @@ with gr.Blocks() as demo:
             )
             print("SD XL Impainting process finished")
 
+            # Detectando rostros
+            print("Deteccion de rostros 🎭")
+            image = cv2.imread(original_image_path)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            face_mask, boxes = face_detector(
+                original_image_path, return_results="both", mask_multiplier=255)
+
+            face_mask = fill_little_spaces(face_mask, 65)
+            face_mask = Image.fromarray(face_mask)
+            face_mask.save("face_mask.png")
+
+            print("Deteccion de rostros exitosa")
+
             if see_face_masks:
                 print("Se veran las mascaras (debug only)")
                 # Asegúrate de que result_crop esté en modo RGBA
@@ -291,18 +285,29 @@ with gr.Blocks() as demo:
                     white_image, result_crop, face_mask_img)
             elif not keep_faces:
                 print("Mejoraremos los rostros")
-                # Busca archivos que empiecen con "face_" y terminen en .png
-                face_paths = glob.glob("face_*.png")
-                for path in face_paths:
-                    filename = os.path.basename(path)
-                    match = re.search(r"face_(\d+)\.png", filename)
-                    if match:
-                        i_face = int(match.group(1))
 
-                        print(f"SD XL Enhancing Face {i_face} 🎨")
+                original_binary_mask = Image.open("original_mask.png")
+                padding = 10
+                for i in range(len(boxes)):
+                    x1 = int(boxes[i][1]) - padding
+                    y1 = int(boxes[i][3]) - padding
+                    x2 = int(boxes[i][0]) + padding
+                    y2 = int(boxes[i][2]) + padding
+
+                    face = crop_image(image, x1, y1, x2, y2)
+                    face_mask = crop_image(
+                        original_binary_mask, x1, y1, x2, y2)
+
+                    if np.any(face_mask == 255):
+                        face = Image.fromarray(face)
+                        face.save(f"face_{i}.png")
+                        face_mask = Image.fromarray(face_mask)
+                        face_mask.save(f"face_mask_{i}.png")
+
+                        print(f"SD XL Enhancing Face {i} 🎨")
                         enhanced_face = impainting_model.impaint(
-                            image_path=f"face_{i_face}.png",
-                            mask_path=f"face_mask_{i_face}.png",
+                            image_path=f"face_{i}.png",
+                            mask_path=f"face_mask_{i}.png",
                             prompt=text,
                             strength=strength,
                             guidance=guidance,
@@ -311,7 +316,16 @@ with gr.Blocks() as demo:
                             padding_mask_crop=None
                         )
                         print("SD XL Impainting process finished")
-                        enhanced_face.save(f"enhanced_face{i_face}.png")
+                        enhanced_face.save(f"enhanced_face{i}.png")
+
+                        # Redimensionar la imagen pequeña al tamaño del área destino
+                        width = x2 - x1
+                        height = y2 - y1
+                        small_resized = enhanced_face.resize((width, height))
+                        # Pegar la imagen pequeña en la imagen grande
+                        # Usa la imagen como máscara si tiene transparencia
+                        new_image.paste(enhanced_face, (x1, y1), small_resized)
+
             else:
                 print("Se conservaran los rostros tal cual")
                 # Asegúrate de que ambas imágenes estén en modo RGBA
