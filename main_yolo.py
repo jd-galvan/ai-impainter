@@ -18,7 +18,8 @@ from utils import (
     delete_irrelevant_detected_pixels,
     fill_little_spaces,
     soften_contours,
-    delete_files
+    delete_files,
+    crop_image
 )
 
 # Cargando variables de entorno
@@ -216,17 +217,32 @@ with gr.Blocks() as demo:
 
                 # Detectando rostros
                 print("Deteccion de rostros 🎭")
-                face_mask = face_detector(
-                    image_path, return_results="mask", mask_multiplier=255)
-                face_mask = fill_little_spaces(face_mask, 65)
+                boxes = face_detector(
+                    image_path, return_results="box", mask_multiplier=255)
+
+                for i in range(len(boxes)):
+                    print(f"Cara {i}")
+                    face = crop_image(image, int(boxes[i][1]), int(boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
+                    face_mask = crop_image(binary_mask, int(boxes[i][1]), int(boxes[i][3]), int(boxes[i][0]), int(boxes[i][2]))
+                    
+                    if np.any(face_mask == 255):
+                        face = Image.fromarray(face)
+                        face.save(f"face_{i}.png")
+                        face_mask = Image.fromarray(face_mask)
+                        face_mask.save(f"face_mask_{i}.png")
+
+                #face_mask = fill_little_spaces(face_mask, 65)
+                
                 print("Deteccion de rostros exitosa")
 
+                """
                 # Preservando mascara de rostro original en mascara final
                 assert binary_mask.shape == face_mask.shape == blurred_mask.shape
                 # Paso 1: Crear una máscara booleana donde face_mask es blanco
                 face_region = face_mask == 255  # o face_mask > 0 si no es estrictamente 255
                 # Paso 2: Reemplazar en blurred_mask esos píxeles con los de binary_mask
                 blurred_mask[face_region] = binary_mask[face_region]
+                """
 
                 # Guardar máscara procesada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
