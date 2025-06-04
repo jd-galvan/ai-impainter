@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
+
 def generate_binary_mask(mask):
     color = np.array([30/255, 144/255, 255/255, 0.6])
     h, w = mask.shape[-2:]
@@ -65,15 +66,7 @@ def delete_files(file_paths):
             print(f"Archivo '{file_path}' eliminado con éxito.")
 
 
-def crop_image(image, x1, x2, y1, y2, padding=10):
-    # Aplicar padding y asegurarse de que las coordenadas estén dentro del rango
-    """
-    y1 = y1 - padding
-    x1 = x1 - padding
-    y2 = y2 + padding
-    x2 = x2 + padding
-    """
-
+def crop_image(image, x1, x2, y1, y2):
     # Recortar y convertir a imagen PIL
     cropped = image[x1:x2, y1:y2]
     return cropped

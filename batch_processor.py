@@ -119,7 +119,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Detectando rostros
                 print("Deteccion de rostros 🎭")
-                face_mask, boxes = face_detector(
+                face_mask, face_boxes = face_detector(
                     ruta_original, return_results="both", mask_multiplier=255)
 
                 face_mask = fill_little_spaces(face_mask, 65)
@@ -200,11 +200,11 @@ def handle_processing_click(lista_elementos_seleccionados):
                 original_binary_mask = Image.open(ruta_mascara_original)
                 original_binary_mask = np.array(original_binary_mask)
                 padding = 10
-                for i in range(len(boxes)):
-                    xmax = int(boxes[i][0])
-                    xmin = int(boxes[i][1])
-                    ymax = int(boxes[i][2])
-                    ymin = int(boxes[i][3])
+                for i in range(len(face_boxes)):
+                    xmax = int(face_boxes[i][0])
+                    xmin = int(face_boxes[i][1])
+                    ymax = int(face_boxes[i][2])
+                    ymin = int(face_boxes[i][3])
 
                     x1 = xmin - padding
                     y1 = ymin - padding
