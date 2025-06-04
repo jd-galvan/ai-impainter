@@ -216,7 +216,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                         original_binary_mask, x1, y1, x2, y2)
 
                     # Verifica si manchas en rostros son menores al 40% (si son mas, ya no se da libertad al modelo de hacer la restauracion para evitar halucinacion)
-                    if np.sum(face_mask == 255) / face_mask.size < 0.4:
+                    if np.any(face_mask == 255) and np.sum(face_mask == 255) / face_mask.size < 0.4:
                         face = Image.fromarray(face)
                         face.save(f"face_{i}.png")
                         face_mask = Image.fromarray(face_mask)
