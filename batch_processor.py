@@ -110,28 +110,25 @@ def handle_processing_click(lista_elementos_seleccionados):
             yield shared_processing_data, f"⏳ Procesando {os.path.basename(ruta_original)} con {modelo}..."
 
             try:
+                # Cargando imagen original
                 image = cv2.imread(ruta_original)
-                if image is None:
-                    raise ValueError(
-                        "No se pudo cargar la imagen. Verifica la ruta.")
-
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 # Detectando rostros
                 print("Deteccion de rostros 🎭")
-                face_mask, face_boxes = face_detector(
+                full_face_mask, face_boxes = face_detector(
                     ruta_original, return_results="both", mask_multiplier=255)
 
-                face_mask = fill_little_spaces(face_mask, 65)
-                face_mask = Image.fromarray(face_mask)
-                face_mask.save("face_mask.png")
+                full_face_mask = fill_little_spaces(full_face_mask, 65)
+                full_face_mask = Image.fromarray(full_face_mask).convert("L")
 
                 print("Deteccion de rostros exitosa")
 
                 binary_mask = None
 
-                kernel_size_contours = 100
+                kernel_size_contours = 0
                 if modelo == "YOLO+SAM":
+                    kernel_size_contours = 100
                     print("YOLO detection started 🔍")
                     yolo_image, boxes = yolo_model.get_bounding_box(
                         0.1, ruta_original)
@@ -203,11 +200,10 @@ def handle_processing_click(lista_elementos_seleccionados):
                 result_crop = new_image.convert("RGBA")
 
                 # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
-                face_mask_img = Image.open("face_mask.png").convert('L')
-                face_mask_img = ImageOps.autocontrast(face_mask_img)
+                full_face_mask = ImageOps.autocontrast(full_face_mask)
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
                 new_image = Image.composite(
-                    original_image, result_crop, face_mask_img)
+                    original_image, result_crop, full_face_mask)
 
                 print("Conservacion de rostros exitosa")
 
