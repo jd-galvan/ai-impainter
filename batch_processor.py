@@ -233,7 +233,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                             negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
                             padding_mask_crop=None
                         )
-                        print("SD XL Impainting process finished")
+                        print("SD XL Impainting face finished")
                         enhanced_face.save(f"enhanced_face{i}.png")
                         new_image.paste(
                             enhanced_face, (x2, y1-enhanced_face.size[1]))
