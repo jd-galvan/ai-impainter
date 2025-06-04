@@ -201,10 +201,15 @@ def handle_processing_click(lista_elementos_seleccionados):
                 original_binary_mask = np.array(original_binary_mask)
                 padding = 10
                 for i in range(len(boxes)):
-                    x1 = int(boxes[i][1]) - padding
-                    y1 = int(boxes[i][3]) - padding
-                    x2 = int(boxes[i][0]) + padding
-                    y2 = int(boxes[i][2]) + padding
+                    xmax = int(boxes[i][0])
+                    xmin = int(boxes[i][1])
+                    ymax = int(boxes[i][2])
+                    ymin = int(boxes[i][3])
+
+                    x1 = xmin - padding
+                    y1 = ymin - padding
+                    x2 = xmax + padding
+                    y2 = ymax + padding
 
                     face = crop_image(image, x1, y1, x2, y2)
                     face_mask = crop_image(
@@ -230,14 +235,8 @@ def handle_processing_click(lista_elementos_seleccionados):
                         )
                         print("SD XL Impainting process finished")
                         enhanced_face.save(f"enhanced_face{i}.png")
-
-                        # Redimensionar la imagen pequeña al tamaño del área destino
-                        width = x2 - x1
-                        height = y2 - y1
-                        small_resized = enhanced_face.resize((width, height))
-                        # Pegar la imagen pequeña en la imagen grande
-                        # Usa la imagen como máscara si tiene transparencia
-                        new_image.paste(enhanced_face, (x1, y1), small_resized)
+                        new_image.paste(
+                            enhanced_face, (x2, y1-enhanced_face.size[1]))
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
