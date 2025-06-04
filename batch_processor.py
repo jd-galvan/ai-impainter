@@ -121,6 +121,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 full_face_mask = fill_little_spaces(full_face_mask, 65)
                 full_face_mask = Image.fromarray(full_face_mask).convert("L")
+                full_face_mask = ImageOps.autocontrast(full_face_mask)
 
                 print("Deteccion de rostros exitosa")
 
@@ -157,12 +158,11 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Guardar mascara original
                 directorio, nombre_completo = os.path.split(ruta_original)
+                ruta_base = os.path.join(directorio, '')
                 nombre, extension = os.path.splitext(nombre_completo)
-                ruta_mascara_original = os.path.join(
-                    directorio, f"{nombre}_MASK_ORIGINAL_{modelo}.png")
-
                 binary_mask_image = Image.fromarray(binary_mask)
-                binary_mask_image.save(ruta_mascara_original)
+                binary_mask_image.save(
+                    ruta_base + f"{nombre}_MASK_ORIGINAL_{modelo}.png")
 
                 print("Refining generated mask with OpenCV 🖌")
                 refined_binary_mask = delete_irrelevant_detected_pixels(
@@ -177,8 +177,8 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
-                ruta_mascara_final = os.path.join(
-                    directorio, f"{nombre}_MASK_REFINED_{modelo}.png")
+                ruta_mascara_final = ruta_base + \
+                    f"{nombre}_MASK_REFINED_{modelo}.png"
                 processed_mask.save(ruta_mascara_final)
 
                 print("SD XL Impainting started 🎨")
@@ -199,58 +199,21 @@ def handle_processing_click(lista_elementos_seleccionados):
                 original_image = Image.fromarray(image).convert("RGBA")
                 result_crop = new_image.convert("RGBA")
 
-                # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
-                full_face_mask = ImageOps.autocontrast(full_face_mask)
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
                 new_image = Image.composite(
                     original_image, result_crop, full_face_mask)
 
                 print("Conservacion de rostros exitosa")
 
-                original_binary_mask = Image.open(ruta_mascara_original)
-                original_binary_mask = np.array(original_binary_mask)
-                padding = 10
-                for i in range(len(face_boxes)):
-                    xmax = int(face_boxes[i][0])
-                    xmin = int(face_boxes[i][1])
-                    ymax = int(face_boxes[i][2])
-                    ymin = int(face_boxes[i][3])
-
-                    x1 = xmin - padding
-                    y1 = ymin - padding
-                    x2 = xmax + padding
-                    y2 = ymax + padding
-
-                    face = crop_image(image, x1, y1, x2, y2)
-                    face_mask = crop_image(
-                        original_binary_mask, x1, y1, x2, y2)
-
-                    # Verifica si manchas en rostros son menores al 40% (si son mas, ya no se da libertad al modelo de hacer la restauracion para evitar halucinacion)
-                    if np.any(face_mask == 255) and np.sum(face_mask == 255) / face_mask.size < 0.4:
-                        face = Image.fromarray(face)
-                        face.save(f"face_{i}.png")
-                        face_mask = Image.fromarray(face_mask)
-                        face_mask.save(f"face_mask_{i}.png")
-
-                        print(f"SD XL Enhancing Face {i} 🎨")
-                        enhanced_face = impainting_model.impaint(
-                            image_path=f"face_{i}.png",
-                            mask_path=f"face_mask_{i}.png",
-                            prompt="photo restoration, realistic, same style",
-                            strength=0.99,
-                            guidance=7,
-                            steps=20,
-                            negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
-                            padding_mask_crop=None
-                        )
-                        print("SD XL Impainting face finished")
-                        enhanced_face.save(f"enhanced_face{i}.png")
-                        new_image.paste(
-                            enhanced_face, (x2, y1-enhanced_face.size[1]))
+                new_image = __enhance_faces(
+                    image, binary_mask_image, face_boxes, new_image, directorio)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
                 new_image.save(ruta_restauracion)
+
+                print("Restauracion de imagen completa")
+                print("===============================")
 
                 end = time.time()
                 duration = round(end-begin, 3)
@@ -270,6 +233,51 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # Último estado: tabla y mensaje final
         yield shared_processing_data, "🎉 Proceso de restauración completado."
+
+
+def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, folder):
+    original_binary_mask = np.array(binary_mask)
+    padding = 10
+    for i in range(len(face_boxes)):
+        xmax = int(face_boxes[i][0])
+        xmin = int(face_boxes[i][1])
+        ymax = int(face_boxes[i][2])
+        ymin = int(face_boxes[i][3])
+
+        x1 = xmin - padding
+        y1 = ymin - padding
+        x2 = xmax + padding
+        y2 = ymax + padding
+
+        face = crop_image(original_image, x1, y1, x2, y2)
+        face_mask = crop_image(
+            original_binary_mask, x1, y1, x2, y2)
+
+        # Verifica si manchas en rostros son menores al 40% (si son mas, ya no se da libertad al modelo de hacer la restauracion para evitar halucinacion)
+        if np.any(face_mask == 255) and np.sum(face_mask == 255) / face_mask.size < 0.4:
+            face = Image.fromarray(face)
+            face_image_path = folder + f"face_{i}.png"
+            face.save(face_image_path)
+            face_mask = Image.fromarray(face_mask)
+            face_mask_path = folder + f"face_mask_{i}.png"
+            face_mask.save(face_mask_path)
+
+            print(f"SD XL Enhancing Face {i} 🎨")
+            enhanced_face = impainting_model.impaint(
+                image_path=face_image_path,
+                mask_path=face_mask_path,
+                prompt="photo restoration, realistic, same style",
+                strength=0.99,
+                guidance=7,
+                steps=20,
+                negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                padding_mask_crop=None
+            )
+            print("SD XL Impainting face finished")
+            enhanced_face.save(folder + f"enhanced_face{i}.png")
+            inpainted_image.paste(
+                enhanced_face, (x2, y1-enhanced_face.size[1]))
+    return inpainted_image
 
 
 def export_csv():
