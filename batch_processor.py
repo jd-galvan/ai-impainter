@@ -104,6 +104,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 2. Procesar cada archivo
         for fila_idx, (ruta_original, modelo, _, _) in enumerate(shared_processing_data):
+            print("Inicia proceso de restauración para imagen")
             shared_processing_data[fila_idx][2] = "⏳ Procesando..."
             begin = time.time()
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
@@ -206,7 +207,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 print("Conservacion de rostros exitosa")
 
                 new_image = __enhance_faces(
-                    image, binary_mask_image, face_boxes, new_image, directorio)
+                    image, binary_mask_image, face_boxes, new_image, ruta_base)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
