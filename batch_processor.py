@@ -197,9 +197,8 @@ def handle_processing_click(lista_elementos_seleccionados):
                 )
                 print("SD XL Impainting process finished")
 
-                print("Mejoraremos los rostros 🎭")
-
                 original_binary_mask = Image.open(ruta_mascara_original)
+                original_binary_mask = np.array(original_binary_mask)
                 padding = 10
                 for i in range(len(boxes)):
                     x1 = int(boxes[i][1]) - padding
@@ -268,11 +267,12 @@ def export_csv():
     """
     Exporta los datos compartidos de procesamiento como un archivo CSV descargable.
     """
-    #global shared_processing_data
+    # global shared_processing_data
     if not shared_processing_data:
         return None  # No hay datos para exportar
 
-    df = pd.DataFrame(shared_processing_data, columns=["Ruta del Archivo", "Modelo Segmentación", "Estado", "Tiempo (s)"])
+    df = pd.DataFrame(shared_processing_data, columns=[
+                      "Ruta del Archivo", "Modelo Segmentación", "Estado", "Tiempo (s)"])
     output_path = "estado_procesamiento.csv"
     df.to_csv(output_path, index=False)
     return output_path
