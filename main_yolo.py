@@ -146,8 +146,8 @@ with gr.Blocks() as demo:
 
         with gr.Row():
             with gr.Column(scale=1):
-                keep_faces = gr.Checkbox(
-                    label="Preserve Faces", value=True, interactive=True)
+                enhance_faces = gr.Checkbox(
+                    label="Enhance Faces", value=True, interactive=True)
             with gr.Column(scale=1):
                 see_face_masks = gr.Checkbox(
                     label="See Face Mask", value=False, interactive=True)
@@ -234,7 +234,7 @@ with gr.Blocks() as demo:
         return None, None, None
 
     # **Procesar la imagen con la máscara y el texto de entrada**
-    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt, use_padding, padding_mask_crop, keep_faces, see_face_masks):
+    def process_final_image(original_image_path, mask_path, text, strength, guidance, steps, negative_prompt, use_padding, padding_mask_crop, enhance_faces, see_face_masks):
         try:
             print("SD XL Impainting started 🎨")
             padding_mask_crop = padding_mask_crop if use_padding else None
@@ -264,6 +264,22 @@ with gr.Blocks() as demo:
 
             print("Deteccion de rostros exitosa")
 
+            print("Conservacion de rostros...")
+            # Asegúrate de que ambas imágenes estén en modo RGBA
+            result_crop = new_image.convert("RGBA")
+            original_image = Image.open(original_image_path)
+            original_image_rgba = original_image.convert("RGBA")
+
+            # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
+            face_mask_img = Image.open("face_mask.png").convert('L')
+            face_mask_img = ImageOps.autocontrast(face_mask_img)
+
+            # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
+            new_image = Image.composite(
+                original_image_rgba, result_crop, face_mask_img)
+
+            print("Conservacion de rostros exitosa")
+
             if see_face_masks:
                 print("Se veran las mascaras (debug only)")
                 # Asegúrate de que result_crop esté en modo RGBA
@@ -283,7 +299,7 @@ with gr.Blocks() as demo:
                 # Componemos: donde la máscara es blanca, se usa white_image; en el resto, se usa result_crop
                 new_image = Image.composite(
                     white_image, result_crop, face_mask_img)
-            elif not keep_faces:
+            elif enhance_faces:
                 print("Mejoraremos los rostros")
 
                 original_binary_mask = Image.open("original_mask.png")
@@ -307,7 +323,7 @@ with gr.Blocks() as demo:
                     y2 = int(boxes[i][2]) + padding
                     """
                     face = crop_image(image, x1, y1, x2, y2)
-                    
+
                     face_mask = crop_image(
                         original_binary_mask, x1, y1, x2, y2)
 
@@ -331,21 +347,8 @@ with gr.Blocks() as demo:
                         print("SD XL Impainting process finished")
                         enhanced_face.save(f"enhanced_face{i}.png")
 
-                        new_image.paste(enhanced_face, (x2, y1-enhanced_face.size[1]))
-            else:
-                print("Se conservaran los rostros tal cual")
-                # Asegúrate de que ambas imágenes estén en modo RGBA
-                result_crop = new_image.convert("RGBA")
-                original_image = Image.open(original_image_path)
-                original_image_rgba = original_image.convert("RGBA")
-
-                # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
-                face_mask_img = Image.open("face_mask.png").convert('L')
-                face_mask_img = ImageOps.autocontrast(face_mask_img)
-
-                # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
-                new_image = Image.composite(
-                    original_image_rgba, result_crop, face_mask_img)
+                        new_image.paste(
+                            enhanced_face, (x2, y1-enhanced_face.size[1]))
 
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL, ""
@@ -371,7 +374,7 @@ with gr.Blocks() as demo:
     img.change(reset_mask, inputs=[img], outputs=[
                img_yolo, processed_img, final_image])
     send_button.click(process_final_image, inputs=[
-                      img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop, keep_faces, see_face_masks], outputs=[final_image, impainted_img, error_message_impaint])
+                      img, processed_img, text_input, strength, guidance, steps, negative_prompt, use_padding, mask_padding_crop, enhance_faces, see_face_masks], outputs=[final_image, impainted_img, error_message_impaint])
     use_padding.change(fn=toggle_slider, inputs=use_padding,
                        outputs=mask_padding_crop)
 
