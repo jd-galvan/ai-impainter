@@ -6,6 +6,7 @@ import threading
 import cv2
 import gradio as gr
 import numpy as np
+import pandas as pd
 from PIL import Image
 from dotenv import load_dotenv
 from libs.sam2.model import SAM2
@@ -193,8 +194,6 @@ def handle_processing_click(lista_elementos_seleccionados):
                     padding_mask_crop=None,
                     steps=20,
                     negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
-                    keep_faces=True,
-                    see_face_masks=False
                 )
                 print("SD XL Impainting process finished")
 
@@ -253,7 +252,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 # Actualizar estado en caso de error
                 if len(shared_processing_data[fila_idx]) > 1:
                     shared_processing_data[fila_idx][2] = f"❌ Error: {e}"
-                    shared_processing_data[i][3] = "-"
+                    shared_processing_data[fila_idx][3] = "-"
 
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
             yield shared_processing_data, f"✅ Archivo {os.path.basename(ruta_original)} con {modelo}..."
@@ -263,6 +262,20 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # Último estado: tabla y mensaje final
         yield shared_processing_data, "🎉 Proceso de restauración completado."
+
+
+def export_csv():
+    """
+    Exporta los datos compartidos de procesamiento como un archivo CSV descargable.
+    """
+    #global shared_processing_data
+    if not shared_processing_data:
+        return None  # No hay datos para exportar
+
+    df = pd.DataFrame(shared_processing_data, columns=["Ruta del Archivo", "Modelo Segmentación", "Estado", "Tiempo (s)"])
+    output_path = "estado_procesamiento.csv"
+    df.to_csv(output_path, index=False)
+    return output_path
 
 
 # Creamos la interfaz de Gradio
@@ -325,6 +338,20 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
         outputs=[output_tabla_procesamiento, status_message]
         # Gradio gestionará automáticamente el encolamiento si múltiples usuarios presionan el botón
     )
+
+    # Botón para exportar CSV
+    exportar_csv_button = gr.Button("📥 Descargar Tabla como CSV")
+
+    # Componente de archivo para descargar el CSV
+    csv_file_output = gr.File(label="Archivo CSV generado")
+
+    # Conectar el botón con la función export_csv
+    exportar_csv_button.click(
+        fn=export_csv,
+        inputs=[],
+        outputs=csv_file_output
+    )
+
 
 # Lanzamos la interfaz de Gradio.
 demo.launch(debug=True, auth=(os.environ.get(
