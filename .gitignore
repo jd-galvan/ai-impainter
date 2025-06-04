@@ -191,3 +191,4 @@ dataset/
 *.pth
 .gradio/
 nohup.out
+*.csv
