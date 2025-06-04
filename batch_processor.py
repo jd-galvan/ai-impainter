@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
 from libs.sam2.model import SAM2
+from libs.langsam.model import LangSAMFaceExtractor
 from libs.unet.model import UNetInference
 from libs.stable_diffusion.impaint.model import SDImpainting
 from libs.yolov8.model import YOLOV8
@@ -16,17 +17,20 @@ from utils import (
     generate_binary_mask,
     delete_irrelevant_detected_pixels,
     fill_little_spaces,
-    soften_contours
+    soften_contours,
+    crop_image
 )
 
 load_dotenv()
 
 # Configuración del dispositivo para modelos
-DEVICE = "cuda:1" #os.environ.get("CUDA_DEVICE")
+DEVICE = os.environ.get("CUDA_DEVICE")
+# DEVICE = "cuda:1"
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
 sam_segmentation_model = SAM2(DEVICE)
+face_detector = LangSAMFaceExtractor(device=DEVICE)
 unet_segmentation_model = UNetInference(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
@@ -90,7 +94,8 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 1. Preparar datos iniciales de la tabla con estado 'Pendiente'
         for ruta in rutas_archivos:
-            shared_processing_data.append([ruta, "YOLO+SAM", "✨ Pendiente", ""])
+            shared_processing_data.append(
+                [ruta, "YOLO+SAM", "✨ Pendiente", ""])
             shared_processing_data.append([ruta, "UNet", "✨ Pendiente", ""])
 
         # Generar estado inicial: tabla y mensaje
@@ -110,6 +115,17 @@ def handle_processing_click(lista_elementos_seleccionados):
                         "No se pudo cargar la imagen. Verifica la ruta.")
 
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+                # Detectando rostros
+                print("Deteccion de rostros 🎭")
+                face_mask, boxes = face_detector(
+                    ruta_original, return_results="both", mask_multiplier=255)
+
+                face_mask = fill_little_spaces(face_mask, 65)
+                face_mask = Image.fromarray(face_mask)
+                face_mask.save("face_mask.png")
+
+                print("Deteccion de rostros exitosa")
 
                 binary_mask = None
 
@@ -136,7 +152,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                     # Generar mascara binaria
                     binary_mask = generate_binary_mask(combined_mask)
                 elif modelo == "UNet":
-                    kernel_size_contours=50
+                    kernel_size_contours = 50
                     print("UNet segmentation started 🔬")
                     binary_mask = unet_segmentation_model.get_mask(image=image)
                     print(f"UNet detection has finished successfully")
@@ -182,10 +198,52 @@ def handle_processing_click(lista_elementos_seleccionados):
                 )
                 print("SD XL Impainting process finished")
 
+                print("Mejoraremos los rostros 🎭")
+
+                original_binary_mask = Image.open(ruta_mascara_original)
+                padding = 10
+                for i in range(len(boxes)):
+                    x1 = int(boxes[i][1]) - padding
+                    y1 = int(boxes[i][3]) - padding
+                    x2 = int(boxes[i][0]) + padding
+                    y2 = int(boxes[i][2]) + padding
+
+                    face = crop_image(image, x1, y1, x2, y2)
+                    face_mask = crop_image(
+                        original_binary_mask, x1, y1, x2, y2)
+
+                    # Verifica si manchas en rostros son menores al 40% (si son mas, ya no se da libertad al modelo de hacer la restauracion para evitar halucinacion)
+                    if np.sum(face_mask == 255) / face_mask.size < 0.4:
+                        face = Image.fromarray(face)
+                        face.save(f"face_{i}.png")
+                        face_mask = Image.fromarray(face_mask)
+                        face_mask.save(f"face_mask_{i}.png")
+
+                        print(f"SD XL Enhancing Face {i} 🎨")
+                        enhanced_face = impainting_model.impaint(
+                            image_path=f"face_{i}.png",
+                            mask_path=f"face_mask_{i}.png",
+                            prompt="photo restoration, realistic, same style",
+                            strength=0.99,
+                            guidance=7,
+                            steps=20,
+                            negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                            padding_mask_crop=None
+                        )
+                        print("SD XL Impainting process finished")
+                        enhanced_face.save(f"enhanced_face{i}.png")
+
+                        # Redimensionar la imagen pequeña al tamaño del área destino
+                        width = x2 - x1
+                        height = y2 - y1
+                        small_resized = enhanced_face.resize((width, height))
+                        # Pegar la imagen pequeña en la imagen grande
+                        # Usa la imagen como máscara si tiene transparencia
+                        new_image.paste(enhanced_face, (x1, y1), small_resized)
+
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
                 new_image.save(ruta_restauracion)
-
 
                 end = time.time()
                 duration = round(end-begin, 3)
