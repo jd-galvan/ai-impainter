@@ -198,13 +198,16 @@ def handle_processing_click(lista_elementos_seleccionados):
                 print("SD XL Impainting process finished")
 
                 print("Conservacion de rostros...")
+                # Asegúrate de que ambas imágenes estén en modo RGBA
+                result_crop = new_image.convert("RGBA")
+
                 # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
                 face_mask_img = Image.open("face_mask.png").convert('L')
                 face_mask_img = ImageOps.autocontrast(face_mask_img)
 
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
                 new_image = Image.composite(
-                    image, new_image, face_mask_img)
+                    image, result_crop, face_mask_img)
 
                 print("Conservacion de rostros exitosa")
 
