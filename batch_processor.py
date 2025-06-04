@@ -7,7 +7,7 @@ import cv2
 import gradio as gr
 import numpy as np
 import pandas as pd
-from PIL import Image
+from PIL import Image, ImageOps
 from dotenv import load_dotenv
 from libs.sam2.model import SAM2
 from libs.langsam.model import LangSAMFaceExtractor
@@ -196,6 +196,17 @@ def handle_processing_click(lista_elementos_seleccionados):
                     negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
                 )
                 print("SD XL Impainting process finished")
+
+                print("Conservacion de rostros...")
+                # Convertir face_mask a imagen PIL y asegurarse que tenga valores 0-255
+                face_mask_img = Image.open("face_mask.png").convert('L')
+                face_mask_img = ImageOps.autocontrast(face_mask_img)
+
+                # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
+                new_image = Image.composite(
+                    image, new_image, face_mask_img)
+
+                print("Conservacion de rostros exitosa")
 
                 original_binary_mask = Image.open(ruta_mascara_original)
                 original_binary_mask = np.array(original_binary_mask)
