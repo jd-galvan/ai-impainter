@@ -19,7 +19,8 @@ from utils import (
     delete_irrelevant_detected_pixels,
     fill_little_spaces,
     soften_contours,
-    crop_image
+    crop_image,
+    delete_files
 )
 
 load_dotenv()
@@ -86,7 +87,7 @@ def handle_processing_click(lista_elementos_seleccionados):
         rutas_archivos = []
         if lista_elementos_seleccionados:
             # Ignoramos el primer elemento asumiendo que es la carpeta
-            rutas_archivos = lista_elementos_seleccionados[1:]
+            rutas_archivos = [ruta for ruta in lista_elementos_seleccionados if os.path.isfile(ruta)]
 
         # Si no hay archivos seleccionados, salimos
         if not rutas_archivos:
@@ -104,7 +105,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 2. Procesar cada archivo
         for fila_idx, (ruta_original, modelo, _, _) in enumerate(shared_processing_data):
-            print("Inicia proceso de restauración para imagen")
+            print(f"Inicia proceso de restauración para imagen {ruta_original} con modelo {modelo}")
             shared_processing_data[fila_idx][2] = "⏳ Procesando..."
             begin = time.time()
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
@@ -200,6 +201,12 @@ def handle_processing_click(lista_elementos_seleccionados):
                 original_image = Image.fromarray(image).convert("RGBA")
                 result_crop = new_image.convert("RGBA")
 
+                print("original_image size:", original_image.size)
+                print("result_crop size:", result_crop.size)
+                print("mask size:", full_face_mask.size)
+
+                full_face_mask.save(ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+          
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
                 new_image = Image.composite(
                     original_image, result_crop, full_face_mask)
@@ -223,8 +230,11 @@ def handle_processing_click(lista_elementos_seleccionados):
             except Exception as e:
                 # Actualizar estado en caso de error
                 if len(shared_processing_data[fila_idx]) > 1:
-                    shared_processing_data[fila_idx][2] = f"❌ Error: {e}"
+                    error_message = f"❌ Error: {e}"
+                    shared_processing_data[fila_idx][2] = error_message
                     shared_processing_data[fila_idx][3] = "-"
+                    print(error_message)
+                    print("========================")
 
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
             yield shared_processing_data, f"✅ Archivo {os.path.basename(ruta_original)} con {modelo}..."
@@ -238,6 +248,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
 def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, folder):
     original_binary_mask = np.array(binary_mask)
+    height, width = original_image.shape[:2] # Obtener dimensiones de la imagen
     padding = 10
     for i in range(len(face_boxes)):
         xmax = int(face_boxes[i][0])
@@ -245,10 +256,10 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
         ymax = int(face_boxes[i][2])
         ymin = int(face_boxes[i][3])
 
-        x1 = xmin - padding
-        y1 = ymin - padding
-        x2 = xmax + padding
-        y2 = ymax + padding
+        x1 = max(0, xmin - padding)
+        y1 = max(0, ymin - padding)
+        x2 = min(width, xmax + padding)
+        y2 = min(height, ymax + padding)
 
         face = crop_image(original_image, x1, y1, x2, y2)
         face_mask = crop_image(
@@ -275,9 +286,12 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 padding_mask_crop=None
             )
             print("SD XL Impainting face finished")
-            enhanced_face.save(folder + f"enhanced_face{i}.png")
+            #enhanced_face.save(folder + f"enhanced_face{i}.png")
             inpainted_image.paste(
                 enhanced_face, (x2, y1-enhanced_face.size[1]))
+
+            # Delete images of face and face mask
+            delete_files([face_image_path, face_mask_path])
     return inpainted_image
 
 

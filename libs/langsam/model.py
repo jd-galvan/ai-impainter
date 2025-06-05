@@ -1,9 +1,8 @@
 from samgeo.text_sam import LangSAM
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 import os
 import numpy as np
 from tqdm import tqdm
-from PIL import Image
 
 class LangSAMFaceExtractor():
   def __init__(self, device: str, model_size:["tiny", "small", "base-plus", "large"] = "tiny"):
@@ -20,10 +19,11 @@ class LangSAMFaceExtractor():
           blend=True,
       )
 
-  def __call__(self, image:[str, Image], box_threshold=0.24,text_threshold=0.24, output:[str, None]=None, mask_multiplier:int=1, dtype=np.uint8, return_results:["mask", "box", "both", None]=None, print_result:bool = True):
+  def __call__(self, image:[str, Image], box_threshold=0.3,text_threshold=0.24, output:[str, None]=None, mask_multiplier:int=1, dtype=np.uint8, return_results:["mask", "box", "both", None]=None, print_result:bool = True):
     #Print results only works when result is not returned
     if isinstance(image, str):
       image = Image.open(image)
+      image = ImageOps.exif_transpose(image)
 
     self.sam.predict(image, text_prompt="face", box_threshold=box_threshold, text_threshold=text_threshold, output = output, mask_multiplier=mask_multiplier, dtype=dtype)
 
