@@ -2,9 +2,17 @@ import gradio as gr
 import os
 import random
 from PIL import Image, ImageOps
+from datetime import datetime
+import csv
 
 # Ruta a la carpeta con las imágenes
-CARPETA_IMAGENES = "/Users/josegalvan/Downloads/fotos_mejora2/fotos"
+CARPETA_IMAGENES = "/Users/josegalvan/Documents/Personal/UPV/salvem_les_fotos/restauracion_bench/benchmark"
+# Carpeta para guardar los resultados
+CARPETA_RESULTADOS = "resultados_benchmark"
+
+# Asegurar que existe la carpeta de resultados
+if not os.path.exists(CARPETA_RESULTADOS):
+    os.makedirs(CARPETA_RESULTADOS)
 
 def precargar_imagenes(carpeta):
     archivos = os.listdir(carpeta)
@@ -40,9 +48,61 @@ def precargar_imagenes(carpeta):
 imagenes_precargadas = precargar_imagenes(CARPETA_IMAGENES)
 indice = 0
 nombre_usuario = ""
+archivo_respuestas = ""
+
+def crear_archivo_respuestas(nombre):
+    """Crea un archivo CSV para las respuestas del usuario."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_archivo = f"{nombre.replace(' ', '_')}_{timestamp}.csv"
+    ruta_archivo = os.path.join(CARPETA_RESULTADOS, nombre_archivo)
+    
+    with open(ruta_archivo, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            'imagen_original',
+            'restauracion1_nombre',
+            'restauracion1_identidad',
+            'restauracion1_no_rostros',
+            'restauracion1_manchas',
+            'restauracion1_coherencia',
+            'restauracion2_nombre',
+            'restauracion2_identidad',
+            'restauracion2_no_rostros',
+            'restauracion2_manchas',
+            'restauracion2_coherencia',
+            'preferencia'
+        ])
+    
+    return ruta_archivo
+
+def encontrar_evaluacion_incompleta(nombre):
+    """Busca si existe una evaluación incompleta para el usuario."""
+    nombre_base = nombre.replace(' ', '_')
+    if not os.path.exists(CARPETA_RESULTADOS):
+        return None, 0
+    
+    # Buscar archivos que coincidan con el patrón del nombre y no estén completados
+    archivos = [f for f in os.listdir(CARPETA_RESULTADOS) 
+               if f.startswith(nombre_base) and 
+               f.endswith('.csv') and 
+               '_COMPLETED' not in f]
+    
+    if not archivos:
+        return None, 0
+    
+    # Usar el archivo más reciente si hay varios
+    archivo = sorted(archivos)[-1]
+    ruta_archivo = os.path.join(CARPETA_RESULTADOS, archivo)
+    
+    # Contar cuántas imágenes ya se evaluaron
+    with open(ruta_archivo, 'r') as f:
+        # Restar 1 para no contar el encabezado
+        imagenes_evaluadas = sum(1 for _ in f) - 1
+    
+    return ruta_archivo, imagenes_evaluadas
 
 def iniciar_evaluacion(nombre):
-    global indice, nombre_usuario
+    global indice, nombre_usuario, archivo_respuestas
     if not nombre.strip():
         return [
             gr.update(visible=True, value="Por favor, ingresa tu nombre"),  # error_msg
@@ -74,12 +134,24 @@ def iniciar_evaluacion(nombre):
         ]
     
     nombre_usuario = nombre.strip()
-    indice = 1  # Iniciamos en 1 porque ya vamos a mostrar la primera imagen
     
-    # Preparar primera imagen
-    trio = imagenes_precargadas[0]
+    # Buscar si existe una evaluación incompleta
+    evaluacion_existente, imagenes_evaluadas = encontrar_evaluacion_incompleta(nombre_usuario)
+    
+    if evaluacion_existente:
+        archivo_respuestas = evaluacion_existente
+        indice = imagenes_evaluadas  # Comenzar desde donde se quedó
+    else:
+        archivo_respuestas = crear_archivo_respuestas(nombre_usuario)
+        indice = 0
+    
+    # Preparar imagen actual
+    trio = imagenes_precargadas[indice]
     restored = trio["restored"]
     random.shuffle(restored)
+    
+    # Incrementar el índice para la próxima vez
+    indice += 1
     
     return [
         gr.update(visible=False),  # error_msg
@@ -91,7 +163,7 @@ def iniciar_evaluacion(nombre):
         gr.update(value=restored[0][1], visible=True),       # name2
         gr.update(value=restored[1][0], visible=True),       # img3
         gr.update(value=restored[1][1], visible=True),       # name3
-        gr.update(value=f"### Imagen Original 1/{len(imagenes_precargadas)}", visible=True),  # progress
+        gr.update(value=f"### Imagen Original {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
         gr.update(value="", visible=False),  # gracias
         gr.update(visible=True),  # btn
         gr.update(visible=True),  # title
@@ -110,21 +182,58 @@ def iniciar_evaluacion(nombre):
         gr.update(visible=False)  # reiniciar_btn
     ]
 
-def mostrar_siguiente():
-    global indice
+def guardar_respuestas(imagen_original, rest1_nombre, rest1_identidad, rest1_no_rostros, rest1_manchas, rest1_coherencia,
+                      rest2_nombre, rest2_identidad, rest2_no_rostros, rest2_manchas, rest2_coherencia, preferencia):
+    """Guarda las respuestas de la evaluación actual en el archivo CSV."""
+    with open(archivo_respuestas, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            imagen_original,
+            rest1_nombre,
+            rest1_identidad,
+            rest1_no_rostros,
+            rest1_manchas,
+            rest1_coherencia,
+            rest2_nombre,
+            rest2_identidad,
+            rest2_no_rostros,
+            rest2_manchas,
+            rest2_coherencia,
+            preferencia
+        ])
+
+def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
+                     slider2a, checkbox2, slider2b, slider2c,
+                     preference):
+    global indice, archivo_respuestas
     total = len(imagenes_precargadas)
     
-    # Si no hay imágenes, retornar todo oculto
-    if not imagenes_precargadas:
-        return [
-            gr.update(visible=False),  # error_msg
-            gr.update(visible=True),   # nombre_input
-            gr.update(visible=True),   # comenzar_btn
-            *[gr.update(value=None, visible=False) for _ in range(23)]  # Actualizado a 23 outputs para incluir los checkboxes
-        ]
+    # Guardar respuestas de la imagen actual
+    if indice > 0:  # No guardamos al inicio
+        imagen_actual = imagenes_precargadas[indice - 1]
+        guardar_respuestas(
+            imagen_actual["original"][1],  # nombre imagen original
+            imagen_actual["restored"][0][1],  # nombre restauración 1
+            slider1a,
+            checkbox1,
+            slider1b,
+            slider1c,
+            imagen_actual["restored"][1][1],  # nombre restauración 2
+            slider2a,
+            checkbox2,
+            slider2b,
+            slider2c,
+            preference
+        )
 
     # Si estamos en la última imagen y presionamos siguiente
     if indice >= total:
+        # Renombrar el archivo añadiendo COMPLETED
+        if os.path.exists(archivo_respuestas):
+            nuevo_nombre = archivo_respuestas.replace('.csv', '_COMPLETED.csv')
+            os.rename(archivo_respuestas, nuevo_nombre)
+            archivo_respuestas = nuevo_nombre
+
         return [
             gr.update(visible=False),  # error_msg
             gr.update(visible=False),  # nombre_input
@@ -299,6 +408,11 @@ with gr.Blocks() as demo:
 
     btn.click(
         fn=mostrar_siguiente,
+        inputs=[
+            slider1a, checkbox1, slider1b, slider1c,
+            slider2a, checkbox2, slider2b, slider2c,
+            preference
+        ],
         outputs=[
             error_msg,
             nombre_input,
