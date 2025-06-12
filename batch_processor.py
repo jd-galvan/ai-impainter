@@ -289,6 +289,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
 
             enhanced_face_mask = face_detector(
                 face_image_path, return_results="mask", mask_multiplier=255)
+            enhanced_face_mask = fill_little_spaces(enhanced_face_mask, 65)
 
             # Convert enhanced_face to RGBA for transparency
             enhanced_face = enhanced_face.convert("RGBA")
