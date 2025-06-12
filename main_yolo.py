@@ -347,8 +347,29 @@ with gr.Blocks() as demo:
                         print("SD XL Impainting process finished")
                         enhanced_face.save(f"enhanced_face{i}.png")
 
+                        enhanced_face_mask = face_detector(
+                            face_image_path, return_results="mask", mask_multiplier=255)
+                        enhanced_face_mask = fill_little_spaces(enhanced_face_mask, 65)
+
+                        # Convert enhanced_face to RGBA for transparency
+                        enhanced_face = enhanced_face.convert("RGBA")
+                        
+                        # Create transparency mask from enhanced_face_mask
+                        # Convert mask to array for manipulation
+                        mask_array = np.array(enhanced_face_mask)
+                        # Create RGBA array where alpha channel is based on the mask
+                        rgba_array = np.zeros((*mask_array.shape, 4), dtype=np.uint8)
+                        # Copy RGB channels from enhanced_face
+                        rgba_array[..., :3] = np.array(enhanced_face)[..., :3]
+                        # Set alpha channel based on mask (255 where mask is white, 0 where black)
+                        rgba_array[..., 3] = mask_array
+                        
+                        # Convert back to PIL Image with transparency
+                        enhanced_face_with_transparency = Image.fromarray(rgba_array, mode="RGBA")
+                        #enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
+                        #enhanced_face.save(folder + f"enhanced_face{i}.png")
                         new_image.paste(
-                            enhanced_face, (x2, y1-enhanced_face.size[1]))
+                            enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
             new_image.save(RUTA_IMAGEN_FINAL)
             return RUTA_IMAGEN_FINAL, RUTA_IMAGEN_FINAL, ""
