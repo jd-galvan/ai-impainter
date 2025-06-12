@@ -286,9 +286,29 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 padding_mask_crop=None
             )
             print("SD XL Impainting face finished")
+
+            enhanced_face_mask = face_detector(
+                face_image_path, return_results="mask", mask_multiplier=255)
+
+            # Convert enhanced_face to RGBA for transparency
+            enhanced_face = enhanced_face.convert("RGBA")
+            
+            # Create transparency mask from enhanced_face_mask
+            # Convert mask to array for manipulation
+            mask_array = np.array(enhanced_face_mask)
+            # Create RGBA array where alpha channel is based on the mask
+            rgba_array = np.zeros((*mask_array.shape, 4), dtype=np.uint8)
+            # Copy RGB channels from enhanced_face
+            rgba_array[..., :3] = np.array(enhanced_face)[..., :3]
+            # Set alpha channel based on mask (255 where mask is white, 0 where black)
+            rgba_array[..., 3] = mask_array
+            
+            # Convert back to PIL Image with transparency
+            enhanced_face_with_transparency = Image.fromarray(rgba_array, mode="RGBA")
+            enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
             #enhanced_face.save(folder + f"enhanced_face{i}.png")
             inpainted_image.paste(
-                enhanced_face, (x2, y1-enhanced_face.size[1]))
+                enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
             # Delete images of face and face mask
             delete_files([face_image_path, face_mask_path])
