@@ -345,10 +345,11 @@ with gr.Blocks() as demo:
                             padding_mask_crop=None
                         )
                         print("SD XL Impainting process finished")
-                        enhanced_face.save(f"enhanced_face{i}.png")
+                        enhanced_face_path = f"enhanced_face{i}.png"
+                        enhanced_face.save(enhanced_face_path)
 
                         enhanced_face_mask = face_detector(
-                            face_image_path, return_results="mask", mask_multiplier=255)
+                            enhanced_face_path, return_results="mask", mask_multiplier=255)
                         enhanced_face_mask = fill_little_spaces(enhanced_face_mask, 65)
 
                         # Convert enhanced_face to RGBA for transparency
