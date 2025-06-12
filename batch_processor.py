@@ -306,7 +306,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
             
             # Convert back to PIL Image with transparency
             enhanced_face_with_transparency = Image.fromarray(rgba_array, mode="RGBA")
-            enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
+            #enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
             #enhanced_face.save(folder + f"enhanced_face{i}.png")
             inpainted_image.paste(
                 enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
