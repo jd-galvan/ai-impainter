@@ -178,6 +178,8 @@ with gr.Blocks() as demo:
             label="Impainted Image", type="filepath", interactive=False)
 
     def generate_mask_with_yolo(image_path: str, confidence, mask_dilatation):
+        global face_mask
+        global face_boxes
         try:
             print("YOLO detection started 🔍")
             yolo_image, boxes = yolo_model.get_bounding_box(
@@ -324,6 +326,10 @@ with gr.Blocks() as demo:
 
                 original_binary_mask = Image.open("original_mask.png")
                 original_binary_mask = np.array(original_binary_mask)
+
+                image = cv2.imread(original_image_path)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
                 padding = 10
                 for i in range(len(face_boxes)):
                     xmax = int(face_boxes[i][0])
