@@ -182,7 +182,9 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Convertir a arrays NumPy
                 mask1_np = np.array(processed_mask)
+                print(mask1_np.size)
                 mask2_np = np.array(full_face_mask)
+                print(mask2_np.size)
 
                 print("LLEGO ACA")
 
@@ -229,10 +231,6 @@ def handle_processing_click(lista_elementos_seleccionados):
                 # Asegúrate de que ambas imágenes estén en modo RGBA
                 original_image = Image.fromarray(image).convert("RGBA")
                 result_crop = new_image.convert("RGBA")
-
-                print("original_image size:", original_image.size)
-                print("result_crop size:", result_crop.size)
-                print("mask size:", full_face_mask.size)
 
                 full_face_mask.save(
                     ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
