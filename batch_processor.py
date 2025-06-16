@@ -184,22 +184,33 @@ def handle_processing_click(lista_elementos_seleccionados):
                 mask1_np = np.array(processed_mask)
                 mask2_np = np.array(full_face_mask)
 
+                print("LLEGO ACA")
+
                 # Convertir a booleanos: blancos son 255
                 mask1_bool = mask1_np == 255
                 mask2_bool = mask2_np == 255
+                print("LLEGO ACA 2")
 
                 # Eliminar píxeles de mask1 donde mask2 es blanco
                 result_bool = mask1_bool & ~mask2_bool
 
+                print("LLEGO ACA 3")
+
                 # Convertir el resultado a imagen binaria (0 o 255)
                 result_np = np.uint8(result_bool) * 255
+
+                print("LLEGO ACA 4")
 
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(result_np, mode='L')
 
+                print("LLEGO ACA 5")
+
                 ruta_mascara_final = ruta_base + \
                     f"{nombre}_MASK_REFINED_{modelo}.png"
                 processed_mask.save(ruta_mascara_final)
+
+                print("LLEGO ACA 6")
 
                 print("SD XL Impainting started 🎨")
                 new_image = impainting_model.impaint(
