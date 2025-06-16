@@ -42,6 +42,9 @@ yolo_model = YOLOV8(device=DEVICE)
 face_detector = LangSAMFaceExtractor(device=DEVICE)
 # Lista Yolos entrenado
 
+face_mask = None
+face_boxes = None
+
 
 def list_best_pt():
     # Buscar todos los archivos best.pt dentro de cualquier carpeta dentro de detect
@@ -192,6 +195,18 @@ with gr.Blocks() as demo:
             binary_mask = None
             # Generación de la máscara
             if (len(boxes) > 0):
+
+                # Detectando rostros
+                print("Deteccion de rostros 🎭")
+                face_mask, face_boxes = face_detector(
+                    image_path, return_results="both", mask_multiplier=255)
+
+                face_mask = fill_little_spaces(face_mask, 65)
+                face_mask = Image.fromarray(face_mask)
+                face_mask.save("face_mask.png")
+
+                print("Deteccion de rostros exitosa")
+
                 print(f"SAM detection for {len(boxes)} box started 🔬")
                 masks = segmentation_model.get_mask_by_bounding_boxes(
                     boxes=boxes, image=image)
@@ -219,7 +234,26 @@ with gr.Blocks() as demo:
 
                 # Guardar máscara procesada
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
-                processed_mask.save(RUTA_MASCARA)
+
+                # Convertir a arrays NumPy
+                mask1_np = np.array(processed_mask)
+                mask2_np = np.array(face_mask)
+
+                # Convertir a booleanos: blancos son 255
+                mask1_bool = mask1_np == 255
+                mask2_bool = mask2_np == 255
+
+                # Eliminar píxeles de mask1 donde mask2 es blanco
+                result_bool = mask1_bool & ~mask2_bool
+
+                # Convertir el resultado a imagen binaria (0 o 255)
+                result_np = np.uint8(result_bool) * 255
+
+                # Convertir de vuelta a imagen PIL
+                result_img = Image.fromarray(result_np, mode='L')
+
+                # Guardar o mostrar el resultado
+                result_img.save(RUTA_MASCARA)
 
                 return yolo_image, RUTA_MASCARA, ""
             else:
@@ -249,20 +283,6 @@ with gr.Blocks() as demo:
                 padding_mask_crop=padding_mask_crop
             )
             print("SD XL Impainting process finished")
-
-            # Detectando rostros
-            print("Deteccion de rostros 🎭")
-            image = cv2.imread(original_image_path)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-            face_mask, boxes = face_detector(
-                original_image_path, return_results="both", mask_multiplier=255)
-
-            face_mask = fill_little_spaces(face_mask, 65)
-            face_mask = Image.fromarray(face_mask)
-            face_mask.save("face_mask.png")
-
-            print("Deteccion de rostros exitosa")
 
             print("Conservacion de rostros...")
             # Asegúrate de que ambas imágenes estén en modo RGBA
@@ -305,11 +325,11 @@ with gr.Blocks() as demo:
                 original_binary_mask = Image.open("original_mask.png")
                 original_binary_mask = np.array(original_binary_mask)
                 padding = 10
-                for i in range(len(boxes)):
-                    xmax = int(boxes[i][0])
-                    xmin = int(boxes[i][1])
-                    ymax = int(boxes[i][2])
-                    ymin = int(boxes[i][3])
+                for i in range(len(face_boxes)):
+                    xmax = int(face_boxes[i][0])
+                    xmin = int(face_boxes[i][1])
+                    ymax = int(face_boxes[i][2])
+                    ymin = int(face_boxes[i][3])
 
                     x1 = xmin - padding
                     y1 = ymin - padding
@@ -350,25 +370,28 @@ with gr.Blocks() as demo:
 
                         enhanced_face_mask = face_detector(
                             enhanced_face_path, return_results="mask", mask_multiplier=255)
-                        enhanced_face_mask = fill_little_spaces(enhanced_face_mask, 65)
+                        enhanced_face_mask = fill_little_spaces(
+                            enhanced_face_mask, 65)
 
                         # Convert enhanced_face to RGBA for transparency
                         enhanced_face = enhanced_face.convert("RGBA")
-                        
+
                         # Create transparency mask from enhanced_face_mask
                         # Convert mask to array for manipulation
                         mask_array = np.array(enhanced_face_mask)
                         # Create RGBA array where alpha channel is based on the mask
-                        rgba_array = np.zeros((*mask_array.shape, 4), dtype=np.uint8)
+                        rgba_array = np.zeros(
+                            (*mask_array.shape, 4), dtype=np.uint8)
                         # Copy RGB channels from enhanced_face
                         rgba_array[..., :3] = np.array(enhanced_face)[..., :3]
                         # Set alpha channel based on mask (255 where mask is white, 0 where black)
                         rgba_array[..., 3] = mask_array
-                        
+
                         # Convert back to PIL Image with transparency
-                        enhanced_face_with_transparency = Image.fromarray(rgba_array, mode="RGBA")
-                        #enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
-                        #enhanced_face.save(folder + f"enhanced_face{i}.png")
+                        enhanced_face_with_transparency = Image.fromarray(
+                            rgba_array, mode="RGBA")
+                        # enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
+                        # enhanced_face.save(folder + f"enhanced_face{i}.png")
                         new_image.paste(
                             enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
