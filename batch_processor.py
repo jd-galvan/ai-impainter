@@ -87,7 +87,8 @@ def handle_processing_click(lista_elementos_seleccionados):
         rutas_archivos = []
         if lista_elementos_seleccionados:
             # Ignoramos el primer elemento asumiendo que es la carpeta
-            rutas_archivos = [ruta for ruta in lista_elementos_seleccionados if os.path.isfile(ruta)]
+            rutas_archivos = [
+                ruta for ruta in lista_elementos_seleccionados if os.path.isfile(ruta)]
 
         # Si no hay archivos seleccionados, salimos
         if not rutas_archivos:
@@ -105,7 +106,8 @@ def handle_processing_click(lista_elementos_seleccionados):
 
         # 2. Procesar cada archivo
         for fila_idx, (ruta_original, modelo, _, _) in enumerate(shared_processing_data):
-            print(f"Inicia proceso de restauración para imagen {ruta_original} con modelo {modelo}")
+            print(
+                f"Inicia proceso de restauración para imagen {ruta_original} con modelo {modelo}")
             shared_processing_data[fila_idx][2] = "⏳ Procesando..."
             begin = time.time()
             # Generar actualizaciones: tabla y mensaje (sin controlar el botón)
@@ -175,10 +177,24 @@ def handle_processing_click(lista_elementos_seleccionados):
                 dilated_mask = soften_contours(
                     without_irrelevant_pixels_mask, kernel_size_contours)
                 blurred_mask = dilated_mask
-                print("Image was refined successfully!")
+                print("Mask was refined successfully!")
+
+                # Convertir a arrays NumPy
+                mask1_np = blurred_mask
+                mask2_np = np.array(full_face_mask)
+
+                # Convertir a booleanos: blancos son 255
+                mask1_bool = mask1_np == 255
+                mask2_bool = mask2_np == 255
+
+                # Eliminar píxeles de mask1 donde mask2 es blanco
+                result_bool = mask1_bool & ~mask2_bool
+
+                # Convertir el resultado a imagen binaria (0 o 255)
+                result_np = np.uint8(result_bool) * 255
 
                 # Guardar máscara refinada
-                processed_mask = Image.fromarray(blurred_mask, mode='L')
+                processed_mask = Image.fromarray(result_np, mode='L')
                 ruta_mascara_final = ruta_base + \
                     f"{nombre}_MASK_REFINED_{modelo}.png"
                 processed_mask.save(ruta_mascara_final)
@@ -205,8 +221,9 @@ def handle_processing_click(lista_elementos_seleccionados):
                 print("result_crop size:", result_crop.size)
                 print("mask size:", full_face_mask.size)
 
-                full_face_mask.save(ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
-          
+                full_face_mask.save(
+                    ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
                 new_image = Image.composite(
                     original_image, result_crop, full_face_mask)
@@ -248,7 +265,8 @@ def handle_processing_click(lista_elementos_seleccionados):
 
 def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, folder):
     original_binary_mask = np.array(binary_mask)
-    height, width = original_image.shape[:2] # Obtener dimensiones de la imagen
+    # Obtener dimensiones de la imagen
+    height, width = original_image.shape[:2]
     padding = 10
     for i in range(len(face_boxes)):
         xmax = int(face_boxes[i][0])
@@ -293,7 +311,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
 
             # Convert enhanced_face to RGBA for transparency
             enhanced_face = enhanced_face.convert("RGBA")
-            
+
             # Create transparency mask from enhanced_face_mask
             # Convert mask to array for manipulation
             mask_array = np.array(enhanced_face_mask)
@@ -303,11 +321,12 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
             rgba_array[..., :3] = np.array(enhanced_face)[..., :3]
             # Set alpha channel based on mask (255 where mask is white, 0 where black)
             rgba_array[..., 3] = mask_array
-            
+
             # Convert back to PIL Image with transparency
-            enhanced_face_with_transparency = Image.fromarray(rgba_array, mode="RGBA")
-            #enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
-            #enhanced_face.save(folder + f"enhanced_face{i}.png")
+            enhanced_face_with_transparency = Image.fromarray(
+                rgba_array, mode="RGBA")
+            # enhanced_face_with_transparency.save(folder + f"enhanced_transparent_face{i}.png")
+            # enhanced_face.save(folder + f"enhanced_face{i}.png")
             inpainted_image.paste(
                 enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
