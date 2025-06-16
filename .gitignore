@@ -186,7 +186,7 @@ processed_mask.png
 
 # Other files
 runs/
-dataset/
+dataset*/
 *.pt
 *.pth
 .gradio/
