@@ -24,6 +24,7 @@ class LangSAMFaceExtractor():
     if isinstance(image, str):
       image = Image.open(image)
       image = ImageOps.exif_transpose(image)
+      image = image.convert("RGB")
 
     self.sam.predict(image, text_prompt="face", box_threshold=box_threshold, text_threshold=text_threshold, output = output, mask_multiplier=mask_multiplier, dtype=dtype)
 
