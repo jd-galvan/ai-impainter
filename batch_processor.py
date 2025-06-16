@@ -177,10 +177,11 @@ def handle_processing_click(lista_elementos_seleccionados):
                 dilated_mask = soften_contours(
                     without_irrelevant_pixels_mask, kernel_size_contours)
                 blurred_mask = dilated_mask
+                processed_mask = Image.fromarray(blurred_mask, mode='L')
                 print("Mask was refined successfully!")
 
                 # Convertir a arrays NumPy
-                mask1_np = blurred_mask
+                mask1_np = np.array(processed_mask)
                 mask2_np = np.array(full_face_mask)
 
                 # Convertir a booleanos: blancos son 255
@@ -195,6 +196,7 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(result_np, mode='L')
+
                 ruta_mascara_final = ruta_base + \
                     f"{nombre}_MASK_REFINED_{modelo}.png"
                 processed_mask.save(ruta_mascara_final)
