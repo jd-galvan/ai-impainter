@@ -125,7 +125,7 @@ with gr.Blocks() as demo:
         detect_button = gr.Button("Detectar Manchas")
 
     with gr.Row():
-        text_input = gr.Textbox(label="Enter prompt", value="photo restoration, realistic, same style",
+        text_input = gr.Textbox(label="Enter prompt", value="photo restoration, realistic, same style, clean stains",
                                 placeholder="Write prompt for impainting...")
 
     with gr.Row():

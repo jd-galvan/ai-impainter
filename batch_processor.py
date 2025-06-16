@@ -187,7 +187,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                 new_image = impainting_model.impaint(
                     image_path=ruta_original,
                     mask_path=ruta_mascara_final,
-                    prompt="photo restoration, realistic, same style",
+                    prompt="photo restoration, realistic, same style, clean stains",
                     strength=0.99,
                     guidance=7,
                     padding_mask_crop=None,
@@ -278,7 +278,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
             enhanced_face = impainting_model.impaint(
                 image_path=face_image_path,
                 mask_path=face_mask_path,
-                prompt="photo restoration, realistic, same style",
+                prompt="photo restoration, realistic, same style, clean stains",
                 strength=0.99,
                 guidance=7,
                 steps=20,
