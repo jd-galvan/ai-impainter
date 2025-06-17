@@ -124,7 +124,8 @@ def handle_processing_click(lista_elementos_seleccionados):
                     ruta_original, return_results="both", mask_multiplier=255)
 
                 full_face_mask = fill_little_spaces(full_face_mask, 65)
-                full_face_mask = soften_contours(full_face_mask, 100) # TEMPORAL
+                dilated_full_face_mask = soften_contours(
+                    full_face_mask, 100)  # TEMPORAL
                 full_face_mask = Image.fromarray(full_face_mask).convert("L")
                 full_face_mask = ImageOps.autocontrast(full_face_mask)
 
@@ -183,10 +184,11 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 # Convertir a arrays NumPy
                 mask1_np = np.array(processed_mask)
-                mask2_np = np.array(full_face_mask)
+                mask2_np = np.array(dilated_full_face_mask)
 
-                if full_face_mask.size != processed_mask.size:
-                    processed_mask_resized = processed_mask.resize(full_face_mask.size, Image.NEAREST)
+                if dilated_full_face_mask.size != processed_mask.size:
+                    processed_mask_resized = processed_mask.resize(
+                        dilated_full_face_mask.size, Image.NEAREST)
                     mask1_np = np.array(processed_mask_resized)
 
                 # Convertir a booleanos: blancos son 255
