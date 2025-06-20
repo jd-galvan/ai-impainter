@@ -434,5 +434,5 @@ with gr.Blocks() as demo:
 delete_files([RUTA_MASCARA, RUTA_IMAGEN_FINAL])
 
 # **Lanzar la interfaz**
-demo.launch(debug=True, auth=(os.environ.get(
+demo.launch(server_name="0.0.0.0", server_port=7860, debug=True, auth=(os.environ.get(
     "APP_USER"), os.environ.get("APP_PASSWORD")))
