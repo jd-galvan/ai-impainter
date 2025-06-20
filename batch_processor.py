@@ -27,7 +27,7 @@ load_dotenv()
 
 # Configuración del dispositivo para modelos
 DEVICE = os.environ.get("CUDA_DEVICE")
-# DEVICE = "cuda:1"
+#DEVICE = "cuda:1"
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
@@ -37,7 +37,11 @@ unet_segmentation_model = UNetInference(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
 paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
-yolo_model.set_model(paths[0])
+print("YOLO models available")
+print(paths)
+yolo_path = paths[1]
+print(f"Yolo model to use {yolo_path}")
+yolo_model.set_model(yolo_path)
 
 
 # ====== Estado Global Compartido y Mecanismo de Bloqueo ======
@@ -67,7 +71,7 @@ def get_current_processing_state():
 
 
 # Función que maneja el clic del botón, inicia el procesamiento y actualiza el estado (sin deshabilitar el botón)
-def handle_processing_click(lista_elementos_seleccionados):
+def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
     global shared_processing_data, is_processing
 
     # Si ya hay un proceso en curso, notificamos y devolvemos el estado actual
@@ -93,13 +97,12 @@ def handle_processing_click(lista_elementos_seleccionados):
         # Si no hay archivos seleccionados, salimos
         if not rutas_archivos:
             is_processing = False  # Resetear bandera
+            print("ENTRO AQUI")
             return [], "⚠️ No hay archivos seleccionados para procesar."
 
         # 1. Preparar datos iniciales de la tabla con estado 'Pendiente'
         for ruta in rutas_archivos:
-            shared_processing_data.append(
-                [ruta, "YOLO+SAM", "✨ Pendiente", ""])
-            shared_processing_data.append([ruta, "UNet", "✨ Pendiente", ""])
+            shared_processing_data.extend([[ruta, seg_model, "✨ Pendiente", ""] for seg_model in segmentation_models])
 
         # Generar estado inicial: tabla y mensaje
         yield shared_processing_data, "✅ Proceso de restauración iniciado. Procesando archivos..."
@@ -125,7 +128,16 @@ def handle_processing_click(lista_elementos_seleccionados):
 
                 full_face_mask = fill_little_spaces(full_face_mask, 65)
                 dilated_full_face_mask = soften_contours(
-                    full_face_mask, 100)  # TEMPORAL
+                    full_face_mask, 0)  # TEMPORAL: Se deja mascara de rostros sin dilatado por ahora
+                dilated_full_face_mask = Image.fromarray(dilated_full_face_mask).convert("L")
+
+                # Guardando mascara dilatada
+                directorio, nombre_completo = os.path.split(ruta_original)
+                ruta_base = os.path.join(directorio, '')
+                nombre, extension = os.path.splitext(nombre_completo)
+                dilated_full_face_mask.save(
+                    ruta_base + f"{nombre}_dilated_full_face_mask_{modelo}.png")
+
                 full_face_mask = Image.fromarray(full_face_mask).convert("L")
                 full_face_mask = ImageOps.autocontrast(full_face_mask)
 
@@ -138,7 +150,7 @@ def handle_processing_click(lista_elementos_seleccionados):
                     kernel_size_contours = 100
                     print("YOLO detection started 🔍")
                     yolo_image, boxes = yolo_model.get_bounding_box(
-                        0.1, ruta_original)
+                        0.05, ruta_original)
                     print(
                         f"YOLO detection has finished succesfully. {len(boxes)} boxes")
 
@@ -163,9 +175,6 @@ def handle_processing_click(lista_elementos_seleccionados):
                     print(f"UNet detection has finished successfully")
 
                 # Guardar mascara original
-                directorio, nombre_completo = os.path.split(ruta_original)
-                ruta_base = os.path.join(directorio, '')
-                nombre, extension = os.path.splitext(nombre_completo)
                 binary_mask_image = Image.fromarray(binary_mask)
                 binary_mask_image.save(
                     ruta_base + f"{nombre}_MASK_ORIGINAL_{modelo}.png")
@@ -384,6 +393,9 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
         interactive=False,
     )
 
+    # Escoger modelos de segmentacion
+    segmentation_models = gr.CheckboxGroup(["YOLO+SAM", "UNet"], value=["YOLO+SAM", "UNet"], label="Modelo de segmentación")
+
     # Definimos el botón de procesamiento
     procesar_button = gr.Button(
         "✨ Iniciar Restauración con IA ✨")  # Botón con emojis
@@ -410,7 +422,7 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     # Actualiza la tabla y el mensaje de estado (sin controlar el estado del botón).
     procesar_button.click(
         fn=handle_processing_click,  # Llama a la función que maneja el clic y el proceso
-        inputs=file_explorer,  # La entrada es el valor actual del file_explorer
+        inputs=[file_explorer, segmentation_models],  # La entrada es el valor actual del file_explorer y modelos de segmentacion
         # Las salidas son la tabla y el mensaje de estado
         outputs=[output_tabla_procesamiento, status_message]
         # Gradio gestionará automáticamente el encolamiento si múltiples usuarios presionan el botón
