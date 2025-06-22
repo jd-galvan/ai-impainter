@@ -203,6 +203,8 @@ with gr.Blocks() as demo:
                 face_mask, face_boxes = face_detector(
                     image_path, return_results="both", mask_multiplier=255)
 
+                print(f"Cantidad de rostros detectados: {len(face_boxes)}")
+
                 face_mask = fill_little_spaces(face_mask, 65)
                 face_mask = Image.fromarray(face_mask)
                 face_mask.save("face_mask.png")
@@ -363,7 +365,8 @@ with gr.Blocks() as demo:
                         enhanced_face = impainting_model.impaint(
                             image_path=f"face_{i}.png",
                             mask_path=f"face_mask_{i}.png",
-                            prompt=text,
+                            #prompt=text,
+                            prompt="clean face without stains",
                             strength=strength,
                             guidance=guidance,
                             steps=steps,

@@ -39,7 +39,7 @@ yolo_model = YOLOV8(device=DEVICE)
 paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
 print("YOLO models available")
 print(paths)
-yolo_path = paths[1]
+yolo_path = paths[0]
 print(f"Yolo model to use {yolo_path}")
 yolo_model.set_model(yolo_path)
 
@@ -126,6 +126,8 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 full_face_mask, face_boxes = face_detector(
                     ruta_original, return_results="both", mask_multiplier=255)
 
+                print(f"Cantidad de rostros: {len(face_boxes)}")
+
                 full_face_mask = fill_little_spaces(full_face_mask, 65)
                 dilated_full_face_mask = soften_contours(
                     full_face_mask, 0)  # TEMPORAL: Se deja mascara de rostros sin dilatado por ahora
@@ -150,7 +152,7 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     kernel_size_contours = 100
                     print("YOLO detection started 🔍")
                     yolo_image, boxes = yolo_model.get_bounding_box(
-                        0.1, ruta_original)
+                        0.05, ruta_original)
                     print(
                         f"YOLO detection has finished succesfully. {len(boxes)} boxes")
 
@@ -239,22 +241,22 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 )
                 print("SD XL Impainting process finished")
 
-                print("Conservacion de rostros...")
+                #print("Conservacion de rostros...")
                 # Asegúrate de que ambas imágenes estén en modo RGBA
-                original_image = Image.fromarray(image).convert("RGBA")
-                result_crop = new_image.convert("RGBA")
+                #original_image = Image.fromarray(image).convert("RGBA")
+                #result_crop = new_image.convert("RGBA")
 
-                full_face_mask.save(
-                    ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+                #full_face_mask.save(
+                   # ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
 
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
-                new_image = Image.composite(
-                    original_image, result_crop, full_face_mask)
+                #new_image = Image.composite(
+                    #original_image, result_crop, full_face_mask)
 
-                print("Conservacion de rostros exitosa")
+                #print("Conservacion de rostros exitosa")
 
-                new_image = __enhance_faces(
-                    image, binary_mask_image, face_boxes, new_image, ruta_base)
+                #new_image = __enhance_faces(
+                    #image, binary_mask_image, face_boxes, new_image, ruta_base)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
@@ -319,7 +321,8 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
             enhanced_face = impainting_model.impaint(
                 image_path=face_image_path,
                 mask_path=face_mask_path,
-                prompt="photo restoration, realistic, same style, clean stains",
+                #prompt="photo restoration, realistic, same style, clean stains",
+                prompt="clean face without stains",
                 strength=0.99,
                 guidance=7,
                 steps=20,
@@ -354,7 +357,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
             # Delete images of face and face mask
-            delete_files([face_image_path, face_mask_path])
+            #delete_files([face_image_path, face_mask_path])
     return inpainted_image
 
 
