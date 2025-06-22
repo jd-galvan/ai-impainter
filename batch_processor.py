@@ -190,41 +190,42 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
 
-                # general_mask = Image.fromarray(without_irrelevant_pixels_mask, mode='L')
-                # dilated_mask = soften_contours(
-                # without_irrelevant_pixels_mask, kernel_size_contours)
-                # blurred_mask = dilated_mask
-                # processed_mask = Image.fromarray(blurred_mask, mode='L')
+                general_mask = Image.fromarray(
+                    without_irrelevant_pixels_mask, mode='L')
+                dilated_mask = soften_contours(
+                    without_irrelevant_pixels_mask, kernel_size_contours)
+                blurred_mask = dilated_mask
+                processed_mask = Image.fromarray(blurred_mask, mode='L')
                 print("Mask was refined successfully!")
 
                 # Convertir a arrays NumPy
-                # mask1_np = np.array(general_mask)
-                # mask2_np = np.array(dilated_full_face_mask)
+                mask1_np = np.array(general_mask)
+                mask2_np = np.array(dilated_full_face_mask)
 
-                # if dilated_full_face_mask.size != general_mask.size:
-                #     processed_mask_resized = general_mask.resize(
-                #         dilated_full_face_mask.size, Image.NEAREST)
-                #     mask1_np = np.array(processed_mask_resized)
+                if dilated_full_face_mask.size != general_mask.size:
+                    processed_mask_resized = general_mask.resize(
+                        dilated_full_face_mask.size, Image.NEAREST)
+                    mask1_np = np.array(processed_mask_resized)
 
-                # # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
-                # mask1_bool = mask1_np > 0
-                # mask2_bool = mask2_np > 0
+                # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
+                mask1_bool = mask1_np > 0
+                mask2_bool = mask2_np > 0
 
-                # # Eliminar píxeles de mask1 donde mask2 es blanco
-                # result_bool = mask1_bool & ~mask2_bool
+                # Eliminar píxeles de mask1 donde mask2 es blanco
+                result_bool = mask1_bool & ~mask2_bool
 
-                # # Convertir el resultado a imagen binaria (0 o 255)
-                # result_np = np.uint8(result_bool) * 255
-                # erased_face_mask = Image.fromarray(result_np, mode='L')
+                # Convertir el resultado a imagen binaria (0 o 255)
+                result_np = np.uint8(result_bool) * 255
+                erased_face_mask = Image.fromarray(result_np, mode='L')
 
-                # erased_face_mask.save(ruta_base + \
-                #     f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
+                erased_face_mask.save(ruta_base +
+                                      f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
 
                 # Dilatamos mascara final
-                # dilated_mask = soften_contours(
-                #     result_np, kernel_size_contours)
                 dilated_mask = soften_contours(
-                    without_irrelevant_pixels_mask, kernel_size_contours)
+                    result_np, kernel_size_contours)
+                dilated_mask = soften_contours(
+                    result_np, kernel_size_contours)
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(dilated_mask, mode='L')
 
@@ -245,22 +246,25 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 )
                 print("SD XL Impainting process finished")
 
-                # print("Conservacion de rostros...")
-                # Asegúrate de que ambas imágenes estén en modo RGBA
-                # original_image = Image.fromarray(image).convert("RGBA")
-                # result_crop = new_image.convert("RGBA")
+                new_image.save(
+                    ruta_base + f"{nombre}_general_restoration_{modelo}.png")
 
-                # full_face_mask.save(
-                # ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+                print("Conservacion de rostros...")
+                # Asegúrate de que ambas imágenes estén en modo RGBA
+                original_image = Image.fromarray(image).convert("RGBA")
+                result_crop = new_image.convert("RGBA")
+
+                full_face_mask.save(
+                    ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
 
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
-                # new_image = Image.composite(
-                # original_image, result_crop, full_face_mask)
+                new_image = Image.composite(
+                    original_image, result_crop, full_face_mask)
 
-                # print("Conservacion de rostros exitosa")
+                print("Conservacion de rostros exitosa")
 
-                # new_image = __enhance_faces(
-                # image, binary_mask_image, face_boxes, new_image, ruta_base)
+                new_image = __enhance_faces(
+                    image, binary_mask_image, face_boxes, new_image, ruta_base)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
@@ -341,6 +345,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
 
             # Convert enhanced_face to RGBA for transparency
             enhanced_face = enhanced_face.convert("RGBA")
+            enhanced_face.save(folder + f"enhanced_face_{i}.png")
 
             # Create transparency mask from enhanced_face_mask
             # Convert mask to array for manipulation
