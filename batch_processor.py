@@ -27,7 +27,7 @@ load_dotenv()
 
 # Configuración del dispositivo para modelos
 DEVICE = os.environ.get("CUDA_DEVICE")
-#DEVICE = "cuda:1"
+# DEVICE = "cuda:1"
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
@@ -102,7 +102,8 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
 
         # 1. Preparar datos iniciales de la tabla con estado 'Pendiente'
         for ruta in rutas_archivos:
-            shared_processing_data.extend([[ruta, seg_model, "✨ Pendiente", ""] for seg_model in segmentation_models])
+            shared_processing_data.extend(
+                [[ruta, seg_model, "✨ Pendiente", ""] for seg_model in segmentation_models])
 
         # Generar estado inicial: tabla y mensaje
         yield shared_processing_data, "✅ Proceso de restauración iniciado. Procesando archivos..."
@@ -131,7 +132,8 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 full_face_mask = fill_little_spaces(full_face_mask, 65)
                 dilated_full_face_mask = soften_contours(
                     full_face_mask, 0)  # TEMPORAL: Se deja mascara de rostros sin dilatado por ahora
-                dilated_full_face_mask = Image.fromarray(dilated_full_face_mask).convert("L")
+                dilated_full_face_mask = Image.fromarray(
+                    dilated_full_face_mask).convert("L")
 
                 # Guardando mascara dilatada
                 directorio, nombre_completo = os.path.split(ruta_original)
@@ -188,39 +190,41 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 without_irrelevant_pixels_mask = fill_little_spaces(
                     refined_binary_mask)
 
-                general_mask = Image.fromarray(without_irrelevant_pixels_mask, mode='L')
-                #dilated_mask = soften_contours(
-                    #without_irrelevant_pixels_mask, kernel_size_contours)
-                #blurred_mask = dilated_mask
-                #processed_mask = Image.fromarray(blurred_mask, mode='L')
+                # general_mask = Image.fromarray(without_irrelevant_pixels_mask, mode='L')
+                # dilated_mask = soften_contours(
+                # without_irrelevant_pixels_mask, kernel_size_contours)
+                # blurred_mask = dilated_mask
+                # processed_mask = Image.fromarray(blurred_mask, mode='L')
                 print("Mask was refined successfully!")
 
                 # Convertir a arrays NumPy
-                mask1_np = np.array(general_mask)
-                mask2_np = np.array(dilated_full_face_mask)
+                # mask1_np = np.array(general_mask)
+                # mask2_np = np.array(dilated_full_face_mask)
 
-                if dilated_full_face_mask.size != general_mask.size:
-                    processed_mask_resized = general_mask.resize(
-                        dilated_full_face_mask.size, Image.NEAREST)
-                    mask1_np = np.array(processed_mask_resized)
+                # if dilated_full_face_mask.size != general_mask.size:
+                #     processed_mask_resized = general_mask.resize(
+                #         dilated_full_face_mask.size, Image.NEAREST)
+                #     mask1_np = np.array(processed_mask_resized)
 
-                # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
-                mask1_bool = mask1_np > 0
-                mask2_bool = mask2_np > 0
+                # # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
+                # mask1_bool = mask1_np > 0
+                # mask2_bool = mask2_np > 0
 
-                # Eliminar píxeles de mask1 donde mask2 es blanco
-                result_bool = mask1_bool & ~mask2_bool
+                # # Eliminar píxeles de mask1 donde mask2 es blanco
+                # result_bool = mask1_bool & ~mask2_bool
 
-                # Convertir el resultado a imagen binaria (0 o 255)
-                result_np = np.uint8(result_bool) * 255
-                erased_face_mask = Image.fromarray(result_np, mode='L')
+                # # Convertir el resultado a imagen binaria (0 o 255)
+                # result_np = np.uint8(result_bool) * 255
+                # erased_face_mask = Image.fromarray(result_np, mode='L')
 
-                erased_face_mask.save(ruta_base + \
-                    f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
+                # erased_face_mask.save(ruta_base + \
+                #     f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
 
                 # Dilatamos mascara final
+                # dilated_mask = soften_contours(
+                #     result_np, kernel_size_contours)
                 dilated_mask = soften_contours(
-                    result_np, kernel_size_contours)
+                    without_irrelevant_pixels_mask, kernel_size_contours)
                 # Guardar máscara refinada
                 processed_mask = Image.fromarray(dilated_mask, mode='L')
 
@@ -241,22 +245,22 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 )
                 print("SD XL Impainting process finished")
 
-                #print("Conservacion de rostros...")
+                # print("Conservacion de rostros...")
                 # Asegúrate de que ambas imágenes estén en modo RGBA
-                #original_image = Image.fromarray(image).convert("RGBA")
-                #result_crop = new_image.convert("RGBA")
+                # original_image = Image.fromarray(image).convert("RGBA")
+                # result_crop = new_image.convert("RGBA")
 
-                #full_face_mask.save(
-                   # ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+                # full_face_mask.save(
+                # ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
 
                 # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
-                #new_image = Image.composite(
-                    #original_image, result_crop, full_face_mask)
+                # new_image = Image.composite(
+                # original_image, result_crop, full_face_mask)
 
-                #print("Conservacion de rostros exitosa")
+                # print("Conservacion de rostros exitosa")
 
-                #new_image = __enhance_faces(
-                    #image, binary_mask_image, face_boxes, new_image, ruta_base)
+                # new_image = __enhance_faces(
+                # image, binary_mask_image, face_boxes, new_image, ruta_base)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
@@ -321,7 +325,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
             enhanced_face = impainting_model.impaint(
                 image_path=face_image_path,
                 mask_path=face_mask_path,
-                #prompt="photo restoration, realistic, same style, clean stains",
+                # prompt="photo restoration, realistic, same style, clean stains",
                 prompt="clean face without stains",
                 strength=0.99,
                 guidance=7,
@@ -357,7 +361,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
             # Delete images of face and face mask
-            #delete_files([face_image_path, face_mask_path])
+            # delete_files([face_image_path, face_mask_path])
     return inpainted_image
 
 
@@ -406,7 +410,8 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     )
 
     # Escoger modelos de segmentacion
-    segmentation_models = gr.CheckboxGroup(["YOLO+SAM", "UNet"], value=["YOLO+SAM", "UNet"], label="Modelo de segmentación")
+    segmentation_models = gr.CheckboxGroup(
+        ["YOLO+SAM", "UNet"], value=["YOLO+SAM", "UNet"], label="Modelo de segmentación")
 
     # Definimos el botón de procesamiento
     procesar_button = gr.Button(
@@ -434,7 +439,8 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
     # Actualiza la tabla y el mensaje de estado (sin controlar el estado del botón).
     procesar_button.click(
         fn=handle_processing_click,  # Llama a la función que maneja el clic y el proceso
-        inputs=[file_explorer, segmentation_models],  # La entrada es el valor actual del file_explorer y modelos de segmentacion
+        # La entrada es el valor actual del file_explorer y modelos de segmentacion
+        inputs=[file_explorer, segmentation_models],
         # Las salidas son la tabla y el mensaje de estado
         outputs=[output_tabla_procesamiento, status_message]
         # Gradio gestionará automáticamente el encolamiento si múltiples usuarios presionan el botón
