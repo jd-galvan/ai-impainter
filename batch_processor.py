@@ -27,7 +27,7 @@ load_dotenv()
 
 # Configuración del dispositivo para modelos
 DEVICE = os.environ.get("CUDA_DEVICE")
-# DEVICE = "cuda:1"
+#DEVICE = "cuda:0"
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
@@ -39,7 +39,7 @@ yolo_model = YOLOV8(device=DEVICE)
 paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
 print("YOLO models available")
 print(paths)
-yolo_path = paths[0]
+yolo_path = paths[10]
 print(f"Yolo model to use {yolo_path}")
 yolo_model.set_model(yolo_path)
 
@@ -129,7 +129,7 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
 
                 print(f"Cantidad de rostros: {len(face_boxes)}")
 
-                full_face_mask = fill_little_spaces(full_face_mask, 65)
+                full_face_mask = fill_little_spaces(full_face_mask, 120) #65
                 dilated_full_face_mask = soften_contours(
                     full_face_mask, 0)  # TEMPORAL: Se deja mascara de rostros sin dilatado por ahora
                 dilated_full_face_mask = Image.fromarray(
@@ -154,9 +154,22 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     kernel_size_contours = 100
                     print("YOLO detection started 🔍")
                     yolo_image, boxes = yolo_model.get_bounding_box(
-                        0.05, ruta_original)
+                        0.1, ruta_original)
                     print(
                         f"YOLO detection has finished succesfully. {len(boxes)} boxes")
+
+                    if len(boxes) <= 1:
+                        copied_original = Image.open(ruta_original)
+                        copied_original = ImageOps.exif_transpose(copied_original)
+                        copied_original.save(os.path.join(directorio, f"{nombre}_RESTORED_{modelo}.png"))
+                        print("Restauracion de imagen completa")
+                        print("===============================")
+
+                        end = time.time()
+                        duration = round(end-begin, 3)
+                        shared_processing_data[fila_idx][2] = "✅ Restaurado"
+                        shared_processing_data[fila_idx][3] = f"{duration}"
+                        continue
 
                     # Generación de la máscara
                     print(f"SAM detection for {len(boxes)} box started 🔬")
@@ -242,12 +255,15 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     guidance=7,
                     padding_mask_crop=None,
                     steps=20,
-                    negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                    #negative_prompt=""
+                    #negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text, new people, text logo, date",
+                    negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text, watermark, signature, logo, text logo, date, extra person, multiple people, group, cloned face, duplicate, extra limbs, extra face, bad anatomy, mutated hands, deformed face, photo caption"
+
                 )
                 print("SD XL Impainting process finished")
 
-                new_image.save(
-                    ruta_base + f"{nombre}_general_restoration_{modelo}.png")
+                #new_image.save(
+                    #ruta_base + f"{nombre}_general_restoration_{modelo}.png")
 
                 print("Conservacion de rostros...")
                 # Asegúrate de que ambas imágenes estén en modo RGBA
@@ -330,11 +346,13 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 image_path=face_image_path,
                 mask_path=face_mask_path,
                 # prompt="photo restoration, realistic, same style, clean stains",
-                prompt="clean face without stains",
+                #prompt="clean face without stains",
+                prompt="clear skin, smooth face, realistic, natural lighting, photo restoration, high detail, close-up portrait",
                 strength=0.99,
                 guidance=7,
                 steps=20,
-                negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                negative_prompt="blemishes, scars, acne, skin spots, dirty texture, unnatural lighting, distortions, blurry, extra eyes, deformed face, plastic look, overexposed",
+                #negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
                 padding_mask_crop=None
             )
             print("SD XL Impainting face finished")
@@ -366,7 +384,7 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 enhanced_face_with_transparency, (x2, y1-enhanced_face.size[1]), enhanced_face_with_transparency)
 
             # Delete images of face and face mask
-            # delete_files([face_image_path, face_mask_path])
+            delete_files([face_image_path, face_mask_path])
     return inpainted_image
 
 

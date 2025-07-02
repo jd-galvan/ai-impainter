@@ -108,7 +108,7 @@ class UNet(nn.Module):
         return out
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHECKPOINT_PATH = os.path.join(BASE_DIR, "checkpoints/unet_segmentationlosspeopleandfn.pth")
+CHECKPOINT_PATH = os.path.join(BASE_DIR, "checkpoints/unet_segmentationlosspeopleandfn.pth") # checkpoints/unet_segmentation_retrain.pth
 
 
 class UNetInference:

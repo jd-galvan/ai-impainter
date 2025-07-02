@@ -3,12 +3,12 @@ from ultralytics import YOLO
 model = YOLO("yolov8x.pt")
 
 model.train(
-    data="./config5.yaml",
+    data="./config6.yaml",
     epochs=100,
     patience=20,
     batch=8,
     lr0=0.001,
-    name="full_dataset_yolov8x11_5",
+    name="full_dataset_yolov8x13_1",
     project="runs/detect",
     device=[0],
     dropout=0.3,
@@ -20,9 +20,5 @@ model.train(
     hsv_v=0.6,
     hsv_h=0.4,
     degrees=0.45,
-    freeze=2
-    #mixup=0.1,
-    #mosaic=0.3
-    #translate=0.15,
-    #bgr=0.1
+    #freeze=1
 )

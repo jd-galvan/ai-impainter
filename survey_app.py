@@ -6,7 +6,7 @@ from datetime import datetime
 import csv
 
 # Ruta a la carpeta con las imágenes
-CARPETA_IMAGENES = "/Users/josegalvan/Documents/Personal/UPV/salvem_les_fotos/restauracion_bench/benchmark"
+CARPETA_IMAGENES = "/home/salvem/jgalvan/restauraciones/yolo8_10_17"
 # Carpeta para guardar los resultados
 CARPETA_RESULTADOS = "resultados_benchmark"
 
