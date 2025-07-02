@@ -196,6 +196,7 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     binary_mask = unet_segmentation_model.get_mask(image=image)
                     print(f"UNet detection has finished successfully")
                 elif modelo == "SegFormer":
+                    kernel_size_contours = 90
                     print("SegFormer segmentation started 🔬")
                     array = np.array(Image.open(ruta_original))
                     print(array.shape)
