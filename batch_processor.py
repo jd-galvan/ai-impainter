@@ -14,6 +14,7 @@ from libs.langsam.model import LangSAMFaceExtractor
 from libs.unet.model import UNetInference
 from libs.stable_diffusion.impaint.model import SDImpainting
 from libs.yolov8.model import YOLOV8
+from libs.segformer.model import SegformerInference
 from utils import (
     generate_binary_mask,
     delete_irrelevant_detected_pixels,
@@ -27,7 +28,7 @@ load_dotenv()
 
 # Configuración del dispositivo para modelos
 DEVICE = os.environ.get("CUDA_DEVICE")
-#DEVICE = "cuda:0"
+# DEVICE = "cuda:0"
 print(f"DEVICE {DEVICE}")
 
 # Cargar modelos
@@ -36,6 +37,8 @@ face_detector = LangSAMFaceExtractor(device=DEVICE)
 unet_segmentation_model = UNetInference(DEVICE)
 impainting_model = SDImpainting(DEVICE)
 yolo_model = YOLOV8(device=DEVICE)
+segformer_model = SegformerInference("cuda:1")
+
 paths = glob.glob("./tools/trainer/yolov8/runs/detect/*/weights/best.pt")
 print("YOLO models available")
 print(paths)
@@ -129,7 +132,7 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
 
                 print(f"Cantidad de rostros: {len(face_boxes)}")
 
-                full_face_mask = fill_little_spaces(full_face_mask, 120) #65
+                full_face_mask = fill_little_spaces(full_face_mask, 120)  # 65
                 dilated_full_face_mask = soften_contours(
                     full_face_mask, 0)  # TEMPORAL: Se deja mascara de rostros sin dilatado por ahora
                 dilated_full_face_mask = Image.fromarray(
@@ -160,8 +163,10 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
 
                     if len(boxes) <= 1:
                         copied_original = Image.open(ruta_original)
-                        copied_original = ImageOps.exif_transpose(copied_original)
-                        copied_original.save(os.path.join(directorio, f"{nombre}_RESTORED_{modelo}.png"))
+                        copied_original = ImageOps.exif_transpose(
+                            copied_original)
+                        copied_original.save(os.path.join(
+                            directorio, f"{nombre}_RESTORED_{modelo}.png"))
                         print("Restauracion de imagen completa")
                         print("===============================")
 
@@ -190,6 +195,14 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     print("UNet segmentation started 🔬")
                     binary_mask = unet_segmentation_model.get_mask(image=image)
                     print(f"UNet detection has finished successfully")
+                elif modelo == "SegFormer":
+                    print("SegFormer segmentation started 🔬")
+                    array = np.array(Image.open(ruta_original))
+                    print(array.shape)
+                    # array = np.expand_dims(array, axis = 0)
+                    print(array.shape)
+                    binary_mask = segformer_model.get_mask(array)
+                    print(f"SegFormer detection has finished successfully")
 
                 # Guardar mascara original
                 binary_mask_image = Image.fromarray(binary_mask)
@@ -255,15 +268,15 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                     guidance=7,
                     padding_mask_crop=None,
                     steps=20,
-                    #negative_prompt=""
-                    #negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text, new people, text logo, date",
+                    # negative_prompt=""
+                    # negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text, new people, text logo, date",
                     negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text, watermark, signature, logo, text logo, date, extra person, multiple people, group, cloned face, duplicate, extra limbs, extra face, bad anatomy, mutated hands, deformed face, photo caption"
 
                 )
                 print("SD XL Impainting process finished")
 
-                #new_image.save(
-                    #ruta_base + f"{nombre}_general_restoration_{modelo}.png")
+                # new_image.save(
+                # ruta_base + f"{nombre}_general_restoration_{modelo}.png")
 
                 print("Conservacion de rostros...")
                 # Asegúrate de que ambas imágenes estén en modo RGBA
@@ -346,13 +359,13 @@ def __enhance_faces(original_image, binary_mask, face_boxes, inpainted_image, fo
                 image_path=face_image_path,
                 mask_path=face_mask_path,
                 # prompt="photo restoration, realistic, same style, clean stains",
-                #prompt="clean face without stains",
+                # prompt="clean face without stains",
                 prompt="clear skin, smooth face, realistic, natural lighting, photo restoration, high detail, close-up portrait",
                 strength=0.99,
                 guidance=7,
                 steps=20,
                 negative_prompt="blemishes, scars, acne, skin spots, dirty texture, unnatural lighting, distortions, blurry, extra eyes, deformed face, plastic look, overexposed",
-                #negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
+                # negative_prompt="blurry, distorted, unnatural colors, artifacts, harsh edges, unrealistic texture, visible brush strokes, AI look, text",
                 padding_mask_crop=None
             )
             print("SD XL Impainting face finished")
@@ -434,7 +447,7 @@ with gr.Blocks(title="AI-Impainter: Restauración de Fotos de la DANA") as demo:
 
     # Escoger modelos de segmentacion
     segmentation_models = gr.CheckboxGroup(
-        ["YOLO+SAM", "UNet"], value=["YOLO+SAM", "UNet"], label="Modelo de segmentación")
+        ["YOLO+SAM", "UNet", "SegFormer"], value=["YOLO+SAM", "UNet", "SegFormer"], label="Modelo de segmentación")
 
     # Definimos el botón de procesamiento
     procesar_button = gr.Button(
