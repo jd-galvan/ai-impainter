@@ -6,7 +6,7 @@ from datetime import datetime
 import csv
 
 # Ruta a la carpeta con las imágenes
-CARPETA_IMAGENES = "/home/salvem/jgalvan/restauraciones/yolo8_10_17"
+CARPETA_IMAGENES = "/home/salvem/jgalvan/restauraciones/yolo8_10_17_unet_segformer"
 # Carpeta para guardar los resultados
 CARPETA_RESULTADOS = "resultados_benchmark"
 
@@ -20,7 +20,8 @@ def precargar_imagenes(carpeta):
         f[:-4] for f in archivos
         if f.endswith(".jpg") and
         f[:-4] + "_RESTORED_UNet.png" in archivos and
-        f[:-4] + "_RESTORED_YOLO+SAM.png" in archivos
+        f[:-4] + "_RESTORED_YOLO+SAM.png" in archivos and
+        f[:-4] + "_RESTORED_SegFormer.png" in archivos
     ])
 
     ternas = []
@@ -33,11 +34,14 @@ def precargar_imagenes(carpeta):
                 carpeta, base + "_RESTORED_UNet.png")).convert("RGB")
             yolo_sam = Image.open(os.path.join(
                 carpeta, base + "_RESTORED_YOLO+SAM.png")).convert("RGB")
+            segformer = Image.open(os.path.join(
+                carpeta, base + "_RESTORED_SegFormer.png")).convert("RGB")
             ternas.append({
                 "original": (original, base + ".jpg"),
                 "restored": [
                     (unet, base + "_RESTORED_UNet.png"),
-                    (yolo_sam, base + "_RESTORED_YOLO+SAM.png")
+                    (yolo_sam, base + "_RESTORED_YOLO+SAM.png"),
+                    (segformer, base + "_RESTORED_SegFormer.png")
                 ]
             })
         except Exception as e:
@@ -70,6 +74,11 @@ def crear_archivo_respuestas(nombre):
             'restauracion2_no_rostros',
             'restauracion2_manchas',
             'restauracion2_coherencia',
+            'restauracion3_nombre',
+            'restauracion3_identidad',
+            'restauracion3_no_rostros',
+            'restauracion3_manchas',
+            'restauracion3_coherencia',
             'preferencia'
         ])
     
@@ -114,6 +123,8 @@ def iniciar_evaluacion(nombre):
             gr.update(value=None, visible=False),  # name2
             gr.update(value=None, visible=False),  # img3
             gr.update(value=None, visible=False),  # name3
+            gr.update(value=None, visible=False),  # img4
+            gr.update(value=None, visible=False),  # name4
             gr.update(value=None, visible=False),  # progress
             gr.update(value="", visible=False),  # gracias
             gr.update(visible=False),  # btn
@@ -129,7 +140,12 @@ def iniciar_evaluacion(nombre):
             gr.update(value=False, visible=False),  # checkbox2
             gr.update(value=1, visible=False),  # slider2b
             gr.update(value=1, visible=False),  # slider2c
-            gr.update(value=None, visible=False),  # preference
+            gr.update(visible=False),  # markdown4
+            gr.update(value=1, visible=False),  # slider3a
+            gr.update(value=False, visible=False),  # checkbox3
+            gr.update(value=1, visible=False),  # slider3b
+            gr.update(value=1, visible=False),  # slider3c
+            gr.update(value=[], visible=False),  # preference
             gr.update(visible=False)  # reiniciar_btn
         ]
     
@@ -163,6 +179,8 @@ def iniciar_evaluacion(nombre):
         gr.update(value=restored[0][1], visible=True),       # name2
         gr.update(value=restored[1][0], visible=True),       # img3
         gr.update(value=restored[1][1], visible=True),       # name3
+        gr.update(value=restored[2][0], visible=True),       # img4
+        gr.update(value=restored[2][1], visible=True),       # name4
         gr.update(value=f"### Imagen Original {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
         gr.update(value="", visible=False),  # gracias
         gr.update(visible=True),  # btn
@@ -178,12 +196,18 @@ def iniciar_evaluacion(nombre):
         gr.update(value=False, visible=True),  # checkbox2
         gr.update(value=1, visible=True),  # slider2b
         gr.update(value=1, visible=True),  # slider2c
-        gr.update(value=None, visible=True),  # preference
+        gr.update(visible=True),  # markdown4
+        gr.update(value=1, visible=True),  # slider3a
+        gr.update(value=False, visible=True),  # checkbox3
+        gr.update(value=1, visible=True),  # slider3b
+        gr.update(value=1, visible=True),  # slider3c
+        gr.update(value=[], visible=True),  # preference
         gr.update(visible=False)  # reiniciar_btn
     ]
 
 def guardar_respuestas(imagen_original, rest1_nombre, rest1_identidad, rest1_no_rostros, rest1_manchas, rest1_coherencia,
-                      rest2_nombre, rest2_identidad, rest2_no_rostros, rest2_manchas, rest2_coherencia, preferencia):
+                      rest2_nombre, rest2_identidad, rest2_no_rostros, rest2_manchas, rest2_coherencia,
+                      rest3_nombre, rest3_identidad, rest3_no_rostros, rest3_manchas, rest3_coherencia, preferencia):
     """Guarda las respuestas de la evaluación actual en el archivo CSV."""
     with open(archivo_respuestas, 'a', newline='') as f:
         writer = csv.writer(f)
@@ -199,11 +223,17 @@ def guardar_respuestas(imagen_original, rest1_nombre, rest1_identidad, rest1_no_
             rest2_no_rostros,
             rest2_manchas,
             rest2_coherencia,
-            preferencia
+            rest3_nombre,
+            rest3_identidad,
+            rest3_no_rostros,
+            rest3_manchas,
+            rest3_coherencia,
+            ",".join(preferencia) if preferencia else ""
         ])
 
 def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
                      slider2a, checkbox2, slider2b, slider2c,
+                     slider3a, checkbox3, slider3b, slider3c,
                      preference):
     global indice, archivo_respuestas
     total = len(imagenes_precargadas)
@@ -223,6 +253,11 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             checkbox2,
             slider2b,
             slider2c,
+            imagen_actual["restored"][2][1],  # nombre restauración 3
+            slider3a,
+            checkbox3,
+            slider3b,
+            slider3c,
             preference
         )
 
@@ -244,6 +279,8 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=None, visible=False),  # name2
             gr.update(value=None, visible=False),  # img3
             gr.update(value=None, visible=False),  # name3
+            gr.update(value=None, visible=False),  # img4
+            gr.update(value=None, visible=False),  # name4
             gr.update(value=None, visible=False),  # progress
             gr.update(value=f"\n\n# ¡Gracias por tus respuestas, {nombre_usuario}!", visible=True),  # gracias
             gr.update(visible=False),  # btn
@@ -259,7 +296,12 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=False, visible=False),  # checkbox2
             gr.update(value=1, visible=False),  # slider2b
             gr.update(value=1, visible=False),  # slider2c
-            gr.update(value=None, visible=False),  # preference
+            gr.update(visible=False),  # markdown4
+            gr.update(value=1, visible=False),  # slider3a
+            gr.update(value=False, visible=False),  # checkbox3
+            gr.update(value=1, visible=False),  # slider3b
+            gr.update(value=1, visible=False),  # slider3c
+            gr.update(value=[], visible=False),  # preference
             gr.update(visible=True)    # reiniciar_btn
         ]
 
@@ -286,6 +328,8 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
         gr.update(value=restored[0][1], visible=True),       # name2
         gr.update(value=restored[1][0], visible=True),       # img3
         gr.update(value=restored[1][1], visible=True),       # name3
+        gr.update(value=restored[2][0], visible=True),       # img4
+        gr.update(value=restored[2][1], visible=True),       # name4
         gr.update(value=progress_text, visible=True),        # progress
         gr.update(value="", visible=False),                  # gracias
         gr.update(visible=True),                            # btn
@@ -301,7 +345,12 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
         gr.update(value=False, visible=True),               # checkbox2
         gr.update(value=1, visible=True),                   # slider2b
         gr.update(value=1, visible=True),                   # slider2c
-        gr.update(value=None, visible=True),                # preference
+        gr.update(visible=True),                            # markdown4
+        gr.update(value=1, visible=True),                   # slider3a
+        gr.update(value=False, visible=True),               # checkbox3
+        gr.update(value=1, visible=True),                   # slider3b
+        gr.update(value=1, visible=True),                   # slider3c
+        gr.update(value=[], visible=True),                # preference
         gr.update(visible=False)                            # reiniciar_btn
     ]
 
@@ -309,6 +358,9 @@ def toggle_slider1(checkbox_value):
     return gr.update(value=1, interactive=not checkbox_value)
 
 def toggle_slider2(checkbox_value):
+    return gr.update(value=1, interactive=not checkbox_value)
+
+def toggle_slider3(checkbox_value):
     return gr.update(value=1, interactive=not checkbox_value)
 
 # Crear interfaz
@@ -321,7 +373,7 @@ with gr.Blocks() as demo:
     comenzar_btn = gr.Button("Comenzar Evaluación")
 
     with gr.Row():
-        with gr.Column():
+        with gr.Column(scale=1):
             with gr.Row():
                 progress = gr.Markdown(f"### Imagen Original 1/{len(imagenes_precargadas)}", visible=False)
             img1 = gr.Image(label="Original", visible=False)
@@ -332,24 +384,33 @@ with gr.Blocks() as demo:
             - **Desaparición de las manchas**: 1 si la mancha sigue teniendo el mismo tamaño o ha aumentado, 10 si la mancha ha desaparecido, independientemente de la coherencia de las partes generadas.
             - **Reconstrucción coherente**: 1 si las partes reconstruidas no tienen nada que ver con el resto de la imagen o no son realistas, 10 si la imagen es coherente y no parece generada, independientemente de si mantiene o no manchas.
             """, visible=False)
-        with gr.Column():
+        # Restauración 1
+        with gr.Column(scale=1):
             markdown2 = gr.Markdown("### Restauración 1", visible=False)
             img2 = gr.Image(visible=False)
             name2 = gr.Markdown(visible=False)
-            with gr.Row():
-                slider1a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-                checkbox1 = gr.Checkbox(label="No hay rostros", visible=False)
+            slider1a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
+            checkbox1 = gr.Checkbox(label="No hay rostros", visible=False)
             slider1b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
             slider1c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
-        with gr.Column():
+        # Restauración 2
+        with gr.Column(scale=1):
             markdown3 = gr.Markdown("### Restauración 2", visible=False)
             img3 = gr.Image(visible=False)
             name3 = gr.Markdown(visible=False)
-            with gr.Row():
-                slider2a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-                checkbox2 = gr.Checkbox(label="No hay rostros", visible=False)
+            slider2a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
+            checkbox2 = gr.Checkbox(label="No hay rostros", visible=False)
             slider2b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
             slider2c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
+        # Restauración 3 (SegFormer)
+        with gr.Column(scale=1):
+            markdown4 = gr.Markdown("### Restauración 3", visible=False)
+            img4 = gr.Image(visible=False)
+            name4 = gr.Markdown(visible=False)
+            slider3a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
+            checkbox3 = gr.Checkbox(label="No hay rostros", visible=False)
+            slider3b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
+            slider3c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
     
     gr.HTML("<hr>")
 
@@ -357,9 +418,9 @@ with gr.Blocks() as demo:
         with gr.Column(scale=1):
             pass
         with gr.Column(scale=2):
-            preference = gr.Radio(
-                choices=["Restauración 1", "Restauración 2", "Ambas son igual de buenas"],
-                label="¿Cuál restauración te gustó más?",
+            preference = gr.CheckboxGroup(
+                choices=["Restauración 1", "Restauración 2", "Restauración 3"],
+                label="¿Cuál restauración te gustó más? (Puedes seleccionar varias)",
                 interactive=True,
                 visible=False
             )
@@ -374,6 +435,7 @@ with gr.Blocks() as demo:
     # Eventos de los checkboxes
     checkbox1.change(fn=toggle_slider1, inputs=[checkbox1], outputs=[slider1a])
     checkbox2.change(fn=toggle_slider2, inputs=[checkbox2], outputs=[slider2a])
+    checkbox3.change(fn=toggle_slider3, inputs=[checkbox3], outputs=[slider3a])
 
     # Eventos principales
     comenzar_btn.click(
@@ -386,6 +448,7 @@ with gr.Blocks() as demo:
             img1, name1,
             img2, name2,
             img3, name3,
+            img4, name4,
             progress,
             gracias,
             btn,
@@ -401,6 +464,11 @@ with gr.Blocks() as demo:
             checkbox2,
             slider2b,
             slider2c,
+            markdown4,
+            slider3a,
+            checkbox3,
+            slider3b,
+            slider3c,
             preference,
             reiniciar_btn
         ]
@@ -411,6 +479,7 @@ with gr.Blocks() as demo:
         inputs=[
             slider1a, checkbox1, slider1b, slider1c,
             slider2a, checkbox2, slider2b, slider2c,
+            slider3a, checkbox3, slider3b, slider3c,
             preference
         ],
         outputs=[
@@ -420,6 +489,7 @@ with gr.Blocks() as demo:
             img1, name1,
             img2, name2,
             img3, name3,
+            img4, name4,
             progress,
             gracias,
             btn,
@@ -435,6 +505,11 @@ with gr.Blocks() as demo:
             checkbox2,
             slider2b,
             slider2c,
+            markdown4,
+            slider3a,
+            checkbox3,
+            slider3b,
+            slider3c,
             preference,
             reiniciar_btn
         ]
@@ -449,6 +524,7 @@ with gr.Blocks() as demo:
             img1, name1,
             img2, name2,
             img3, name3,
+            img4, name4,
             progress,
             gracias,
             btn,
@@ -464,6 +540,11 @@ with gr.Blocks() as demo:
             checkbox2,
             slider2b,
             slider2c,
+            markdown4,
+            slider3a,
+            checkbox3,
+            slider3b,
+            slider3c,
             preference,
             reiniciar_btn
         ]
