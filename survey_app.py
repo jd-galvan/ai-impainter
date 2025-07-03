@@ -550,4 +550,4 @@ with gr.Blocks() as demo:
         ]
     )
 
-demo.launch()
+demo.launch(server_port=7865, debug=True)
