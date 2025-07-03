@@ -225,36 +225,36 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 processed_mask = Image.fromarray(blurred_mask, mode='L')
                 print("Mask was refined successfully!")
 
-                # Convertir a arrays NumPy
-                mask1_np = np.array(general_mask)
-                mask2_np = np.array(dilated_full_face_mask)
+                # # Convertir a arrays NumPy
+                # mask1_np = np.array(general_mask)
+                # mask2_np = np.array(dilated_full_face_mask)
 
-                if dilated_full_face_mask.size != general_mask.size:
-                    processed_mask_resized = general_mask.resize(
-                        dilated_full_face_mask.size, Image.NEAREST)
-                    mask1_np = np.array(processed_mask_resized)
+                # if dilated_full_face_mask.size != general_mask.size:
+                #     processed_mask_resized = general_mask.resize(
+                #         dilated_full_face_mask.size, Image.NEAREST)
+                #     mask1_np = np.array(processed_mask_resized)
 
-                # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
-                mask1_bool = mask1_np > 0
-                mask2_bool = mask2_np > 0
+                # # Convertir a booleanos: blancos son mayores a 0 debido a casos de pixel 254
+                # mask1_bool = mask1_np > 0
+                # mask2_bool = mask2_np > 0
 
-                # Eliminar píxeles de mask1 donde mask2 es blanco
-                result_bool = mask1_bool & ~mask2_bool
+                # # Eliminar píxeles de mask1 donde mask2 es blanco
+                # result_bool = mask1_bool & ~mask2_bool
 
-                # Convertir el resultado a imagen binaria (0 o 255)
-                result_np = np.uint8(result_bool) * 255
-                erased_face_mask = Image.fromarray(result_np, mode='L')
+                # # Convertir el resultado a imagen binaria (0 o 255)
+                # result_np = np.uint8(result_bool) * 255
+                # erased_face_mask = Image.fromarray(result_np, mode='L')
 
-                erased_face_mask.save(ruta_base +
-                                      f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
+                # erased_face_mask.save(ruta_base +
+                #                       f"{nombre}_ERASED_FACE_MASK_{modelo}.png")
 
-                # Dilatamos mascara final
-                dilated_mask = soften_contours(
-                    result_np, kernel_size_contours)
-                dilated_mask = soften_contours(
-                    result_np, kernel_size_contours)
-                # Guardar máscara refinada
-                processed_mask = Image.fromarray(dilated_mask, mode='L')
+                # # Dilatamos mascara final
+                # dilated_mask = soften_contours(
+                #     result_np, kernel_size_contours)
+                # dilated_mask = soften_contours(
+                #     result_np, kernel_size_contours)
+                # # Guardar máscara refinada
+                # processed_mask = Image.fromarray(dilated_mask, mode='L')
 
                 ruta_mascara_final = ruta_base + \
                     f"{nombre}_MASK_REFINED_{modelo}.png"
