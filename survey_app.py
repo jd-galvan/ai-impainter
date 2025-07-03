@@ -174,13 +174,13 @@ def iniciar_evaluacion(nombre):
         gr.update(visible=False),  # nombre_input
         gr.update(visible=False),  # comenzar_btn
         gr.update(value=trio["original"][0], visible=True),  # img1
-        gr.update(value=trio["original"][1], visible=True),  # name1
+        gr.update(value=trio["original"][1], visible=False),  # name1
         gr.update(value=restored[0][0], visible=True),       # img2
-        gr.update(value=restored[0][1], visible=True),       # name2
+        gr.update(value=restored[0][1], visible=False),       # name2
         gr.update(value=restored[1][0], visible=True),       # img3
-        gr.update(value=restored[1][1], visible=True),       # name3
+        gr.update(value=restored[1][1], visible=False),       # name3
         gr.update(value=restored[2][0], visible=True),       # img4
-        gr.update(value=restored[2][1], visible=True),       # name4
+        gr.update(value=restored[2][1], visible=False),       # name4
         gr.update(value=f"### Imagen Original {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
         gr.update(value="", visible=False),  # gracias
         gr.update(visible=True),  # btn
@@ -323,13 +323,13 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
         gr.update(visible=False),  # nombre_input
         gr.update(visible=False),  # comenzar_btn
         gr.update(value=trio["original"][0], visible=True),  # img1
-        gr.update(value=trio["original"][1], visible=True),  # name1
+        gr.update(value=trio["original"][1], visible=False),  # name1
         gr.update(value=restored[0][0], visible=True),       # img2
-        gr.update(value=restored[0][1], visible=True),       # name2
+        gr.update(value=restored[0][1], visible=False),       # name2
         gr.update(value=restored[1][0], visible=True),       # img3
-        gr.update(value=restored[1][1], visible=True),       # name3
+        gr.update(value=restored[1][1], visible=False),       # name3
         gr.update(value=restored[2][0], visible=True),       # img4
-        gr.update(value=restored[2][1], visible=True),       # name4
+        gr.update(value=restored[2][1], visible=False),       # name4
         gr.update(value=progress_text, visible=True),        # progress
         gr.update(value="", visible=False),                  # gracias
         gr.update(visible=True),                            # btn
