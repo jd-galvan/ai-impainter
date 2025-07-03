@@ -279,22 +279,22 @@ def handle_processing_click(lista_elementos_seleccionados, segmentation_models):
                 # new_image.save(
                 # ruta_base + f"{nombre}_general_restoration_{modelo}.png")
 
-                print("Conservacion de rostros...")
-                # Asegúrate de que ambas imágenes estén en modo RGBA
-                original_image = Image.fromarray(image).convert("RGBA")
-                result_crop = new_image.convert("RGBA")
+                # print("Conservacion de rostros...")
+                # # Asegúrate de que ambas imágenes estén en modo RGBA
+                # original_image = Image.fromarray(image).convert("RGBA")
+                # result_crop = new_image.convert("RGBA")
 
-                full_face_mask.save(
-                    ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
+                # full_face_mask.save(
+                #     ruta_base + f"{nombre}_full_face_mask_{modelo}.png")
 
-                # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
-                new_image = Image.composite(
-                    original_image, result_crop, full_face_mask)
+                # # Componer: donde la máscara es blanca, tomar de original; donde es negra, dejar el resultado
+                # new_image = Image.composite(
+                #     original_image, result_crop, full_face_mask)
 
-                print("Conservacion de rostros exitosa")
+                # print("Conservacion de rostros exitosa")
 
-                new_image = __enhance_faces(
-                    image, binary_mask_image, face_boxes, new_image, ruta_base)
+                # new_image = __enhance_faces(
+                #     image, binary_mask_image, face_boxes, new_image, ruta_base)
 
                 ruta_restauracion = os.path.join(
                     directorio, f"{nombre}_RESTORED_{modelo}.png")
