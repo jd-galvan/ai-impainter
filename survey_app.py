@@ -116,6 +116,8 @@ def iniciar_evaluacion(nombre):
             gr.update(visible=True, value="Please enter your name"),  # error_msg
             gr.update(visible=True),  # nombre_input
             gr.update(visible=True),  # comenzar_btn
+            gr.update(visible=True),  # consent_accordion
+            gr.update(visible=True),  # aceptar_consentimiento_checkbox
             gr.update(value=None, visible=False),  # img1
             gr.update(value=None, visible=False),  # name1
             gr.update(value=None, visible=False),  # img2
@@ -174,6 +176,8 @@ def iniciar_evaluacion(nombre):
         gr.update(visible=False),  # error_msg
         gr.update(visible=False),  # nombre_input
         gr.update(visible=False),  # comenzar_btn
+        gr.update(visible=False),  # consent_accordion
+        gr.update(visible=False),  # aceptar_consentimiento_checkbox
         gr.update(value=trio["original"][0], visible=True),  # img1
         gr.update(value=trio["original"][1], visible=False),  # name1
         gr.update(value=restored[0][0], visible=True),       # img2
@@ -344,12 +348,12 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=1, visible=False),  # slider3a
             gr.update(value=1, visible=False),  # slider3b
             gr.update(value=1, visible=False),  # slider3c
-            gr.update(value="", visible=True),  # comentario_general
+            gr.update(value="", visible=False),  # comentario_general
             gr.update(visible=False),  # ranking_instruction
             gr.update(value=None, visible=False),  # ranking1
             gr.update(value=None, visible=False),  # ranking2
             gr.update(value=None, visible=False),  # ranking3
-            gr.update(visible=True)    # reiniciar_btn
+            gr.update(visible=False)    # reiniciar_btn
         ]
 
     # En cualquier otro caso, mostrar la imagen actual
@@ -419,11 +423,70 @@ with gr.Blocks() as demo:
     </style>
     """)
     title = gr.Markdown("## Restored Image Comparator")
-    
+
+    # Consent information accordion (shown at the top)
+    consentimiento_texto = '''
+#INFORMACIÓN AL PARTICIPANTE DEL PROYECTO Recuperar las Memorias.
+
+Este documento tiene por objeto ofrecerle información sobre un proyecto de investigación en el que se le invita a participar. Este estudio ha sido aprobado por el Comité de Ética en Investigación Social de la Universitat Politécnica de Valencia de acuerdo con la legislación vigente, y se lleva a cabo con respeto a los principios enunciados en la declaración del Helsinki y a las normas de buena práctica en investigación.
+Si decide autorizar su participación en el mismo, debe recibir información personalizada del investigador, leer antes este documento y hacer todas las preguntas que precise para comprender los detalles sobre este. Este documento puede consultarlo con otras personas y tomarse el tiempo que necesite para decidir si autoriza su participación o no.
+La participación en este estudio es completamente voluntaria. Puede decidir no participar o, si acepta hacerlo, cambiar de parecer retirando el consentimiento en cualquier momento sin dar explicaciones.
+
+##¿Cuál es el propósito del estudio?
+
+El objetivo de este proyecto es recabar información sobre la percepción humana sobre la restauración (a través de modelos de Inteligencia Artificial de Apredizaje Profundo) hecha a fotografías dañadas por la DANA.
+
+##¿Por qué me ofrecen participar a mí? ¿Qué tendré que hacer?
+
+Los participantes de este estudio son personas cercanas a los investigadores. 
+Para llevar a cabo el estudio tenemos previsto realizar evaluación sobre 3 restauraciones realizadas a cada fotografía dañada de un total de 20 fotografías lo que le implicará un tiempo aproximado de 20 minutos aproximadamente.
+Usted se puede beneficiar participando en esta investigación al contribuir a la comparación de percepción humana en contraste con métricas de evaluación de restauración de fotos automática. Por otro lado, cabe destacar que no existen riesgos asociados a su participación.
+
+Por tanto, declaro que mi participación es absolutamente voluntaria y puedo retirarme en cualquier momento sin ningún perjuicio ni penalización.
+
+##¿Qué institución o instituciones participan en el proyecto? ¿Van a obtener beneficios económicos con su desarrollo?
+
+VRAIN y la Escuela de Bellas Artes de la UPV.
+Los investigadores no obtendrán beneficios económicos personales directos como producto de la realización de esta encuesta.
+
+##¿Hay alguna restricción de confidencialidad?
+Compromiso de Confidencialidad: El participante de esta encuesta se compromete a mantener la estricta confidencialidad sobre las Imágenes expuestas y se obliga a no realizar, directa
+ni indirectamente, ninguna de las siguientes acciones:
+a. Guardar Copias: El Participante se compromete a no guardar, almacenar ni duplicar
+las Imágenes en ningún formato, ya sea físico o digital.
+b. Divulgar las Imágenes: El Receptor se compromete a no divulgar, compartir,
+distribuir o poner a disposición de terceros las Imágenes, tanto de forma directa como
+indirecta.
+c. No se permite hacer ningún tipo de obra derivada
+
+##¿Con quién debo contactar si tengo más dudas o no entiendo algo?
+Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonserr@dsic.upv.es), José Daniel Galván (jdgalsua@posgrado.upv.es) y Hugo Albert (halbbon@etsinf.upv.es).
+'''
+    consent_accordion = gr.Accordion("Información y consentimiento para la participación", open=False)
+    with consent_accordion:
+        gr.Markdown(consentimiento_texto)
+
     # Initial screen components
     error_msg = gr.Markdown("", visible=False)
     nombre_input = gr.Textbox(label="Please enter your name", placeholder="Name")
-    comenzar_btn = gr.Button("Start Evaluation")
+    aceptar_consentimiento_checkbox = gr.Checkbox(label="I accept to participate in this study", value=False)
+    comenzar_btn = gr.Button("Start Evaluation", interactive=False)
+
+    # Function to update start button interactivity
+    def update_start_button(name, consent_checked):
+        return gr.update(interactive=bool(name.strip()) and consent_checked)
+
+    # Link checkbox and name input to button interactivity
+    aceptar_consentimiento_checkbox.change(
+        fn=update_start_button,
+        inputs=[nombre_input, aceptar_consentimiento_checkbox],
+        outputs=[comenzar_btn]
+    )
+    nombre_input.change(
+        fn=update_start_button,
+        inputs=[nombre_input, aceptar_consentimiento_checkbox],
+        outputs=[comenzar_btn]
+    )
 
     with gr.Row():
         with gr.Column(scale=1):
@@ -547,7 +610,7 @@ with gr.Blocks() as demo:
     ranking1.change(fn=update_ranking2, inputs=[ranking1], outputs=[ranking2])
     ranking2.change(fn=update_ranking3, inputs=[ranking1, ranking2], outputs=[ranking3])
 
-    # Eventos principales
+    # Eventos principales: All event handlers are defined after all UI components to ensure components are defined.
     comenzar_btn.click(
         fn=iniciar_evaluacion,
         inputs=[nombre_input],
@@ -555,6 +618,8 @@ with gr.Blocks() as demo:
             error_msg,
             nombre_input,
             comenzar_btn,
+            consent_accordion,
+            aceptar_consentimiento_checkbox,
             img1, name1,
             img2, name2,
             img3, name3,
@@ -632,6 +697,8 @@ with gr.Blocks() as demo:
             error_msg,
             nombre_input,
             comenzar_btn,
+            consent_accordion,
+            aceptar_consentimiento_checkbox,
             img1, name1,
             img2, name2,
             img3, name3,
