@@ -79,15 +79,15 @@ class SDImpainting:
             extra_args["padding_mask_crop"] = padding_mask_crop
 
         result_canvas = self.pipe(
-            prompt="",
-            # negative_prompt=negative_prompt,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
             image=canvas_image,
             mask_image=canvas_mask,
-            # guidance_scale=guidance,
-            # strength=strength,
+            guidance_scale=guidance,
+            strength=strength,
             generator=self.generator,
-            # num_inference_steps=steps,
-            # **extra_args
+            num_inference_steps=steps,
+            **extra_args
         ).images[0]
 
         # Recorta la parte central que contiene la imagen original redimensionada
