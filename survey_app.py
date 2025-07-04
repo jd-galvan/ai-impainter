@@ -10,7 +10,7 @@ CARPETA_IMAGENES = "/Users/josegalvan/Documents/Personal/UPV/salvem_les_fotos/re
 # Carpeta para guardar los resultados
 CARPETA_RESULTADOS = "resultados_benchmark"
 
-# Asegurar que existe la carpeta de resultados
+# Ensure the results folder exists
 if not os.path.exists(CARPETA_RESULTADOS):
     os.makedirs(CARPETA_RESULTADOS)
 
@@ -55,7 +55,7 @@ nombre_usuario = ""
 archivo_respuestas = ""
 
 def crear_archivo_respuestas(nombre):
-    """Crea un archivo CSV para las respuestas del usuario."""
+    """Creates a CSV file for the user's responses."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_archivo = f"{nombre.replace(' ', '_')}_{timestamp}.csv"
     ruta_archivo = os.path.join(CARPETA_RESULTADOS, nombre_archivo)
@@ -63,22 +63,22 @@ def crear_archivo_respuestas(nombre):
     with open(ruta_archivo, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow([
-            'imagen_original',
-            'no_rostros',
-            'restauracion1_nombre',
-            'restauracion1_identidad',
-            'restauracion1_manchas',
-            'restauracion1_coherencia',
-            'restauracion2_nombre',
-            'restauracion2_identidad',
-            'restauracion2_manchas',
-            'restauracion2_coherencia',
-            'restauracion3_nombre',
-            'restauracion3_identidad',
-            'restauracion3_manchas',
-            'restauracion3_coherencia',
-            'comentario_general',
-            'preferencia'
+            'original_image',
+            'no_faces',
+            'restoration1_name',
+            'restoration1_identity',
+            'restoration1_stains',
+            'restoration1_coherence',
+            'restoration2_name',
+            'restoration2_identity',
+            'restoration2_stains',
+            'restoration2_coherence',
+            'restoration3_name',
+            'restoration3_identity',
+            'restoration3_stains',
+            'restoration3_coherence',
+            'general_comment',
+            'preference'
         ])
     
     return ruta_archivo
@@ -113,7 +113,7 @@ def iniciar_evaluacion(nombre):
     global indice, nombre_usuario, archivo_respuestas
     if not nombre.strip():
         return [
-            gr.update(visible=True, value="Por favor, ingresa tu nombre"),  # error_msg
+            gr.update(visible=True, value="Please enter your name"),  # error_msg
             gr.update(visible=True),  # nombre_input
             gr.update(visible=True),  # comenzar_btn
             gr.update(value=None, visible=False),  # img1
@@ -152,22 +152,22 @@ def iniciar_evaluacion(nombre):
     
     nombre_usuario = nombre.strip()
     
-    # Buscar si existe una evaluación incompleta
+    # Check if there is an incomplete evaluation
     evaluacion_existente, imagenes_evaluadas = encontrar_evaluacion_incompleta(nombre_usuario)
     
     if evaluacion_existente:
         archivo_respuestas = evaluacion_existente
-        indice = imagenes_evaluadas  # Comenzar desde donde se quedó
+        indice = imagenes_evaluadas  # Start from where left off
     else:
         archivo_respuestas = crear_archivo_respuestas(nombre_usuario)
         indice = 0
     
-    # Preparar imagen actual
+    # Prepare current image
     trio = imagenes_precargadas[indice]
     restored = trio["restored"]
     random.shuffle(restored)
     
-    # Incrementar el índice para la próxima vez
+    # Increment index for next time
     indice += 1
     
     return [
@@ -182,7 +182,7 @@ def iniciar_evaluacion(nombre):
         gr.update(value=restored[1][1], visible=False),       # name3
         gr.update(value=restored[2][0], visible=True),       # img4
         gr.update(value=restored[2][1], visible=False),       # name4
-        gr.update(value=f"### Imagen Original {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
+        gr.update(value=f"### Original Image {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
         gr.update(value="", visible=False),  # gracias
         gr.update(visible=True),  # btn
         gr.update(visible=True),  # title
@@ -244,10 +244,10 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
     global indice, archivo_respuestas
     total = len(imagenes_precargadas)
 
-    # Validar que los rankings estén completos
+    # Validate that all rankings are selected
     if not (ranking1 and ranking2 and ranking3):
         return [
-            gr.update(visible=True, value="❌ Por favor, selecciona tu 1ª, 2ª y 3ª preferencia antes de continuar."),  # error_msg
+            gr.update(visible=True, value="❌ Please select your 1st, 2nd, and 3rd preference before continuing."),  # error_msg
             gr.update(visible=False),  # nombre_input
             gr.update(visible=False),  # comenzar_btn
             gr.update(),  # img1
@@ -306,9 +306,9 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             [ranking1, ranking2, ranking3]
         )
 
-    # Si estamos en la última imagen y presionamos siguiente
+    # If we are on the last image and press next
     if indice >= total:
-        # Renombrar el archivo añadiendo COMPLETED
+        # Rename the file adding COMPLETED
         if os.path.exists(archivo_respuestas):
             nuevo_nombre = archivo_respuestas.replace('.csv', '_COMPLETED.csv')
             os.rename(archivo_respuestas, nuevo_nombre)
@@ -327,7 +327,7 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=None, visible=False),  # img4
             gr.update(value=None, visible=False),  # name4
             gr.update(value=None, visible=False),  # progress
-            gr.update(value=f"\n\n# ¡Gracias por tus respuestas, {nombre_usuario}!", visible=True),  # gracias
+            gr.update(value=f"\n\n# Thank you for your responses, {nombre_usuario}!", visible=True),  # gracias
             gr.update(visible=False),  # btn
             gr.update(visible=False),  # title
             gr.update(visible=False),  # markdown1
@@ -360,7 +360,7 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
     restored = trio["restored"]
     random.shuffle(restored)
 
-    progress_text = f"### Imagen Original {current_index}/{total}"
+    progress_text = f"### Original Image {current_index}/{total}"
     
     # Incrementar el índice para la próxima vez
     indice += 1
@@ -407,7 +407,7 @@ def toggle_slider1(checkbox_value):
     return [gr.update(value=1, interactive=not checkbox_value), gr.update(value=1, interactive=not checkbox_value), gr.update(value=1, interactive=not checkbox_value)]
 
 
-# Crear interfaz
+# Create interface
 with gr.Blocks() as demo:
     gr.HTML("""
     <style>
@@ -418,73 +418,73 @@ with gr.Blocks() as demo:
     }
     </style>
     """)
-    title = gr.Markdown("## Comparador de Imágenes Restauradas")
+    title = gr.Markdown("## Restored Image Comparator")
     
-    # Componentes de la pantalla inicial
+    # Initial screen components
     error_msg = gr.Markdown("", visible=False)
-    nombre_input = gr.Textbox(label="Por favor, ingresa tu nombre", placeholder="Nombre")
-    comenzar_btn = gr.Button("Comenzar Evaluación")
+    nombre_input = gr.Textbox(label="Please enter your name", placeholder="Name")
+    comenzar_btn = gr.Button("Start Evaluation")
 
     with gr.Row():
         with gr.Column(scale=1):
             with gr.Row():
-                progress = gr.Markdown(f"### Imagen Original 1/{len(imagenes_precargadas)}", visible=False)
+                progress = gr.Markdown(f"### Original Image 1/{len(imagenes_precargadas)}", visible=False)
             img1 = gr.Image(label="Original", visible=False)
             name1 = gr.Markdown(visible=False)
-        # Restauración 1
+        # Restoration 1
         with gr.Column(scale=1):
-            markdown2 = gr.Markdown("### Restauración 1", visible=False)
+            markdown2 = gr.Markdown("### Restoration 1", visible=False)
             img2 = gr.Image(visible=False)
             name2 = gr.Markdown(visible=False)
-            slider1a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-            slider1b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-            slider1c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
-        # Restauración 2
+            slider1a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+            slider1b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+            slider1c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
+        # Restoration 2
         with gr.Column(scale=1):
-            markdown3 = gr.Markdown("### Restauración 2", visible=False)
+            markdown3 = gr.Markdown("### Restoration 2", visible=False)
             img3 = gr.Image(visible=False)
             name3 = gr.Markdown(visible=False)
-            slider2a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-            slider2b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-            slider2c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
-        # Restauración 3 (SegFormer)
+            slider2a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+            slider2b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+            slider2c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
+        # Restoration 3 (SegFormer)
         with gr.Column(scale=1):
-            markdown4 = gr.Markdown("### Restauración 3", visible=False)
+            markdown4 = gr.Markdown("### Restoration 3", visible=False)
             img4 = gr.Image(visible=False)
             name4 = gr.Markdown(visible=False)
-            slider3a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-            slider3b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-            slider3c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
+            slider3a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+            slider3b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+            slider3c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
     
 
     with gr.Row():
         with gr.Column(scale=1):
             markdown1 = gr.Markdown("""
-            **¿Cómo evaluar las restauraciones?**  
-            - **Conservación de identidad**: 1 si las personas no se reconocen, 10 si se distingue perfectamente que las personas siguen siendo ellas. 
-            - **Desaparición de las manchas**: 1 si la mancha sigue teniendo el mismo tamaño o ha aumentado, 10 si la mancha ha desaparecido, independientemente de la coherencia de las partes generadas.
-            - **Reconstrucción coherente**: 1 si las partes reconstruidas no tienen nada que ver con el resto de la imagen o no son realistas, 10 si la imagen es coherente y no parece generada, independientemente de si mantiene o no manchas.
+            **How to evaluate the restorations?**  
+            - **Identity preservation**: 1 if people are not recognizable, 10 if you can perfectly tell they are the same people. 
+            - **Stain removal**: 1 if the stain is the same size or has increased, 10 if the stain has disappeared, regardless of the coherence of the generated parts.
+            - **Coherent reconstruction**: 1 if the reconstructed parts have nothing to do with the rest of the image or are not realistic, 10 if the image is coherent and does not look generated, regardless of whether it still has stains.
             """, visible=False)
 
         with gr.Column(scale=3):
             with gr.Row():
-                checkbox1 = gr.Checkbox(label="No hay rostros en la foto original", visible=False)
+                checkbox1 = gr.Checkbox(label="There are no faces in the original photo", visible=False)
             with gr.Row():
-                # Restauración 1
+                # Restoration 1
                 with gr.Column(scale=1):
-                    slider1a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-                    slider1b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-                    slider1c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
-                # Restauración 2
+                    slider1a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+                    slider1b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+                    slider1c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
+                # Restoration 2
                 with gr.Column(scale=1):
-                    slider2a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-                    slider2b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-                    slider2c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
-                # Restauración 3 (SegFormer)
+                    slider2a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+                    slider2b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+                    slider2c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
+                # Restoration 3 (SegFormer)
                 with gr.Column(scale=1):
-                    slider3a = gr.Slider(1, 10, step=1, label="Conservacion de identidad", interactive=True, visible=False)
-                    slider3b = gr.Slider(1, 10, step=1, label="Desaparición de las manchas", interactive=True, visible=False)
-                    slider3c = gr.Slider(1, 10, step=1, label="Reconstrucción coherente de zonas dañadas", interactive=True, visible=False)
+                    slider3a = gr.Slider(1, 10, step=1, label="Identity preservation", interactive=True, visible=False)
+                    slider3b = gr.Slider(1, 10, step=1, label="Stain removal", interactive=True, visible=False)
+                    slider3c = gr.Slider(1, 10, step=1, label="Coherent reconstruction of damaged areas", interactive=True, visible=False)
         
 
     gr.HTML("<hr>")
@@ -493,32 +493,32 @@ with gr.Blocks() as demo:
         with gr.Column(scale=2):
             ranking_instruction = gr.Markdown(
                 """
-                **Ordena tu preferencia de restauraciones**  
-                (1 es la que te pareció mejor y 3 es la que te pareció peor)
+                **Rank your restoration preferences**  
+                (1 is the one you liked the most and 3 is the one you liked the least)
                 """,
                 visible=False
             )
-            ranking_choices = ["Restauración 1", "Restauración 2", "Restauración 3"]
+            ranking_choices = ["Restoration 1", "Restoration 2", "Restoration 3"]
             ranking1 = gr.Dropdown(
                 choices=ranking_choices,
-                label="1ª preferencia",
+                label="1st preference",
                 interactive=True,
                 visible=False
             )
             ranking2 = gr.Dropdown(
                 choices=ranking_choices,
-                label="2ª preferencia",
+                label="2nd preference",
                 interactive=True,
                 visible=False
             )
             ranking3 = gr.Dropdown(
                 choices=ranking_choices,
-                label="3ª preferencia",
+                label="3rd preference",
                 interactive=True,
                 visible=False
             )
         with gr.Column(scale=2):
-            comentario_general = gr.Textbox(lines=15, label="Comentarios (opcional)", visible=False)
+            comentario_general = gr.Textbox(lines=15, label="Comments (optional)", visible=False)
 
     with gr.Row():
         gracias = gr.Markdown("", visible=False)
@@ -529,8 +529,8 @@ with gr.Blocks() as demo:
         with gr.Column(scale=1):
             pass
     with gr.Row():
-        btn = gr.Button("Siguiente", visible=False)
-        reiniciar_btn = gr.Button("Realizar Nueva Evaluación", visible=False)
+        btn = gr.Button("Next", visible=False)
+        reiniciar_btn = gr.Button("Start New Evaluation", visible=False)
 
     # Eventos de los checkboxes
     checkbox1.change(fn=toggle_slider1, inputs=[checkbox1], outputs=[slider1a, slider2a, slider3a])
