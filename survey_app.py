@@ -439,7 +439,7 @@ El objetivo de este proyecto es recabar información sobre la percepción humana
 ##¿Por qué me ofrecen participar a mí? ¿Qué tendré que hacer?
 
 Los participantes de este estudio son personas cercanas a los investigadores. 
-Para llevar a cabo el estudio tenemos previsto realizar evaluación sobre 3 restauraciones realizadas a cada fotografía dañada de un total de 20 fotografías lo que le implicará un tiempo aproximado de 20 minutos aproximadamente.
+Para llevar a cabo el estudio tenemos previsto realizar evaluación sobre 3 restauraciones realizadas a cada fotografía dañada de un total de 22 fotografías lo que le implicará un tiempo aproximado de 20 minutos aproximadamente.
 Usted se puede beneficiar participando en esta investigación al contribuir a la comparación de percepción humana en contraste con métricas de evaluación de restauración de fotos automática. Por otro lado, cabe destacar que no existen riesgos asociados a su participación.
 
 Por tanto, declaro que mi participación es absolutamente voluntaria y puedo retirarme en cualquier momento sin ningún perjuicio ni penalización.
