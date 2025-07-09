@@ -6,7 +6,7 @@ from datetime import datetime
 import csv
 
 # Ruta a la carpeta con las imágenes
-CARPETA_IMAGENES = "/Users/josegalvan/Documents/Personal/UPV/salvem_les_fotos/restauracion_bench/benchmark2"
+CARPETA_IMAGENES = "/home/salvem/benchmarkv2"
 # Carpeta para guardar los resultados
 CARPETA_RESULTADOS = "resultados_benchmark"
 
@@ -49,10 +49,19 @@ def precargar_imagenes(carpeta):
     return ternas
 
 # Variables globales
+# imagenes_precargadas = precargar_imagenes(CARPETA_IMAGENES)
+# indice = 0
+# nombre_usuario = ""
+# archivo_respuestas = ""
+
 imagenes_precargadas = precargar_imagenes(CARPETA_IMAGENES)
-indice = 0
-nombre_usuario = ""
-archivo_respuestas = ""
+
+# Estado inicial para cada usuario
+initial_state = {
+    "indice": 0,
+    "nombre_usuario": "",
+    "archivo_respuestas": ""
+}
 
 def crear_archivo_respuestas(nombre):
     """Creates a CSV file for the user's responses."""
@@ -109,8 +118,7 @@ def encontrar_evaluacion_incompleta(nombre):
     
     return ruta_archivo, imagenes_evaluadas
 
-def iniciar_evaluacion(nombre):
-    global indice, nombre_usuario, archivo_respuestas
+def iniciar_evaluacion(nombre, state):
     if not nombre.strip():
         return [
             gr.update(visible=True, value="Please enter your name"),  # error_msg
@@ -149,29 +157,21 @@ def iniciar_evaluacion(nombre):
             gr.update(value=None, visible=False),  # ranking1
             gr.update(value=None, visible=False),  # ranking2
             gr.update(value=None, visible=False),  # ranking3
-            gr.update(visible=False)  # reiniciar_btn
+            gr.update(visible=False),  # reiniciar_btn
+            state
         ]
-    
-    nombre_usuario = nombre.strip()
-    
-    # Check if there is an incomplete evaluation
-    evaluacion_existente, imagenes_evaluadas = encontrar_evaluacion_incompleta(nombre_usuario)
-    
+    state["nombre_usuario"] = nombre.strip()
+    evaluacion_existente, imagenes_evaluadas = encontrar_evaluacion_incompleta(state["nombre_usuario"])
     if evaluacion_existente:
-        archivo_respuestas = evaluacion_existente
-        indice = imagenes_evaluadas  # Start from where left off
+        state["archivo_respuestas"] = evaluacion_existente
+        state["indice"] = imagenes_evaluadas  # Start from where left off
     else:
-        archivo_respuestas = crear_archivo_respuestas(nombre_usuario)
-        indice = 0
-    
-    # Prepare current image
-    trio = imagenes_precargadas[indice]
+        state["archivo_respuestas"] = crear_archivo_respuestas(state["nombre_usuario"])
+        state["indice"] = 0
+    trio = imagenes_precargadas[state["indice"]]
     restored = trio["restored"]
     random.shuffle(restored)
-    
-    # Increment index for next time
-    indice += 1
-    
+    state["indice"] += 1
     return [
         gr.update(visible=False),  # error_msg
         gr.update(visible=False),  # nombre_input
@@ -186,7 +186,7 @@ def iniciar_evaluacion(nombre):
         gr.update(value=restored[1][1], visible=False),       # name3
         gr.update(value=restored[2][0], visible=True),       # img4
         gr.update(value=restored[2][1], visible=False),       # name4
-        gr.update(value=f"### Original Image {indice}/{len(imagenes_precargadas)}", visible=True),  # progress
+        gr.update(value=f"### Original Image {state['indice']}/{len(imagenes_precargadas)}", visible=True),  # progress
         gr.update(value="", visible=False),  # gracias
         gr.update(visible=True),  # btn
         gr.update(visible=True),  # title
@@ -209,7 +209,8 @@ def iniciar_evaluacion(nombre):
         gr.update(value=None, visible=True),  # ranking1
         gr.update(value=None, visible=True),  # ranking2
         gr.update(value=None, visible=True),  # ranking3
-        gr.update(visible=False)  # reiniciar_btn
+        gr.update(visible=False),  # reiniciar_btn
+        state
     ]
 
 def guardar_respuestas(imagen_original, no_rostros,
@@ -217,9 +218,10 @@ def guardar_respuestas(imagen_original, no_rostros,
                       rest2_nombre, rest2_identidad, rest2_manchas, rest2_coherencia,
                       rest3_nombre, rest3_identidad, rest3_manchas, rest3_coherencia,
                       comentario_general,
-                      ranking):
+                      ranking,
+                      state):
     """Guarda las respuestas de la evaluación actual en el archivo CSV."""
-    with open(archivo_respuestas, 'a', newline='') as f:
+    with open(state["archivo_respuestas"], 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow([
             imagen_original,
@@ -244,8 +246,8 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
                      slider2a, slider2b, slider2c,
                      slider3a, slider3b, slider3c,
                      comentario_general,
-                     ranking1, ranking2, ranking3):
-    global indice, archivo_respuestas
+                     ranking1, ranking2, ranking3,
+                     state):
     total = len(imagenes_precargadas)
 
     # Validate that all rankings are selected
@@ -285,12 +287,13 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(),  # ranking1
             gr.update(),  # ranking2
             gr.update(),  # ranking3
-            gr.update()   # reiniciar_btn
+            gr.update(),   # reiniciar_btn
+            state
         ]
     
     # Guardar respuestas de la imagen actual
-    if indice > 0:  # No guardamos al inicio
-        imagen_actual = imagenes_precargadas[indice - 1]
+    if state["indice"] > 0:  # No guardamos al inicio
+        imagen_actual = imagenes_precargadas[state["indice"] - 1]
         guardar_respuestas(
             imagen_actual["original"][1],  # nombre imagen original
             checkbox1,
@@ -307,16 +310,17 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             slider3b,
             slider3c,
             comentario_general,
-            [ranking1, ranking2, ranking3]
+            [ranking1, ranking2, ranking3],
+            state
         )
 
     # If we are on the last image and press next
-    if indice >= total:
+    if state["indice"] >= total:
         # Rename the file adding COMPLETED
-        if os.path.exists(archivo_respuestas):
-            nuevo_nombre = archivo_respuestas.replace('.csv', '_COMPLETED.csv')
-            os.rename(archivo_respuestas, nuevo_nombre)
-            archivo_respuestas = nuevo_nombre
+        if os.path.exists(state["archivo_respuestas"]):
+            nuevo_nombre = state["archivo_respuestas"].replace('.csv', '_COMPLETED.csv')
+            os.rename(state["archivo_respuestas"], nuevo_nombre)
+            state["archivo_respuestas"] = nuevo_nombre
 
         return [
             gr.update(visible=False),  # error_msg
@@ -331,7 +335,7 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=None, visible=False),  # img4
             gr.update(value=None, visible=False),  # name4
             gr.update(value=None, visible=False),  # progress
-            gr.update(value=f"\n\n# Thank you for your responses, {nombre_usuario}!", visible=True),  # gracias
+            gr.update(value=f"\n\n# Thank you for your responses, {state['nombre_usuario']}!", visible=True),  # gracias
             gr.update(visible=False),  # btn
             gr.update(visible=False),  # title
             gr.update(visible=False),  # markdown1
@@ -353,12 +357,13 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
             gr.update(value=None, visible=False),  # ranking1
             gr.update(value=None, visible=False),  # ranking2
             gr.update(value=None, visible=False),  # ranking3
-            gr.update(visible=False)    # reiniciar_btn
+            gr.update(visible=False),    # reiniciar_btn
+            state
         ]
 
     # En cualquier otro caso, mostrar la imagen actual
-    trio = imagenes_precargadas[indice]
-    current_index = indice + 1
+    trio = imagenes_precargadas[state["indice"]]
+    current_index = state["indice"] + 1
 
     # Mezclar las imágenes restauradas
     restored = trio["restored"]
@@ -367,7 +372,7 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
     progress_text = f"### Original Image {current_index}/{total}"
     
     # Incrementar el índice para la próxima vez
-    indice += 1
+    state["indice"] += 1
 
     return [
         gr.update(visible=False),  # error_msg
@@ -404,7 +409,8 @@ def mostrar_siguiente(slider1a, checkbox1, slider1b, slider1c,
         gr.update(value=None, visible=True),  # ranking1
         gr.update(value=None, visible=True),  # ranking2
         gr.update(value=None, visible=True),  # ranking3
-        gr.update(visible=False)                            # reiniciar_btn
+        gr.update(visible=False),                            # reiniciar_btn
+        state
     ]
 
 def toggle_slider1(checkbox_value):
@@ -611,9 +617,10 @@ Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonser
     ranking2.change(fn=update_ranking3, inputs=[ranking1, ranking2], outputs=[ranking3])
 
     # Eventos principales: All event handlers are defined after all UI components to ensure components are defined.
+    user_state = gr.State(initial_state.copy())
     comenzar_btn.click(
         fn=iniciar_evaluacion,
-        inputs=[nombre_input],
+        inputs=[nombre_input, user_state],
         outputs=[
             error_msg,
             nombre_input,
@@ -645,7 +652,8 @@ Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonser
             comentario_general,
             ranking_instruction,
             ranking1, ranking2, ranking3,
-            reiniciar_btn
+            reiniciar_btn,
+            user_state
         ]
     )
 
@@ -656,7 +664,8 @@ Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonser
             slider2a, slider2b, slider2c,
             slider3a, slider3b, slider3c,
             comentario_general,
-            ranking1, ranking2, ranking3
+            ranking1, ranking2, ranking3,
+            user_state
         ],
         outputs=[
             error_msg,
@@ -687,12 +696,14 @@ Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonser
             comentario_general,
             ranking_instruction,
             ranking1, ranking2, ranking3,
-            reiniciar_btn
+            reiniciar_btn,
+            user_state
         ]
     )
 
     reiniciar_btn.click(
-        fn=lambda: iniciar_evaluacion(nombre_usuario),
+        fn=lambda state: iniciar_evaluacion(state["nombre_usuario"], state),
+        inputs=[user_state],
         outputs=[
             error_msg,
             nombre_input,
@@ -724,7 +735,8 @@ Puede contactar con Cèsar Ferri (cferri@dsic.upv.es), Carlos Monserrat (cmonser
             comentario_general,
             ranking_instruction,
             ranking1, ranking2, ranking3,
-            reiniciar_btn
+            reiniciar_btn,
+            user_state
         ]
     )
 
